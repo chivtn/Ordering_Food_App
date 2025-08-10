@@ -99,4 +99,3 @@ def test_delete_restaurant(app, seed_restaurant_data):
 
         restaurant = Restaurant.query.get(10)
         assert restaurant is None
-

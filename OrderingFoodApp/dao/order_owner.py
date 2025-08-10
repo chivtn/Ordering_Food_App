@@ -5,6 +5,8 @@ from sqlalchemy import func, and_, or_
 from datetime import datetime, timedelta
 from sqlalchemy.exc import SQLAlchemyError
 
+# from OrderingFoodApp.services.notification_service import NotificationService
+
 
 class OrderDAO:
     @staticmethod
@@ -73,7 +75,6 @@ class OrderDAO:
         }
         return status_map.get(status.value, status.value)
 
-
     @staticmethod
     def update_order_status(order_id, status, rj_reason=None):
         order = Order.query.get(order_id)
@@ -91,6 +92,22 @@ class OrderDAO:
         current_status = order.status.value
         if status not in valid_transitions.get(current_status, []):
             return False
+        #
+        #     # Thay đổi phần gửi email trong update_order_status
+        # if status == 'confirmed':
+        #     restaurant = Restaurant.query.get(order.restaurant_id)
+        #     owner = User.query.get(restaurant.owner_id)
+        #
+        #     # Gửi email HTML
+        #     NotificationService.send_order_confirmation(owner, order)
+        #
+        #     # Gửi SMS
+        #     if owner.phone:
+        #         order_message = f"Đơn hàng #{order.id} - {order.total_amount:,.0f}₫ từ {order.customer.name}"
+        #         NotificationService.send_sms(
+        #             phone_number=owner.phone,
+        #             message=f"{order_message}. Vui lòng kiểm tra email hoặc hệ thống."
+        #         )
 
         order.status = status
         if status == 'cancelled' and rj_reason:
