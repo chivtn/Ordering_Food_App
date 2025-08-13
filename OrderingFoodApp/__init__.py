@@ -22,9 +22,9 @@ def init_app():
 
     # ====== CONFIGURATION ======
     app.config['SECRET_KEY'] = 'sieu-bi-mat-123'
-    # # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:askme@localhost/db_orderingfood?charset=utf8mb4'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:26032004@localhost/db_orderingfood?charset=utf8mb4'
-    # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Votanhuy%40123@localhost:3306/db_orderingfood?charset=utf8mb4'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:askme@localhost/db_orderingfood?charset=utf8mb4'
+    #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:26032004@localhost/db_orderingfood?charset=utf8mb4'
+    #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Votanhuy%40123@localhost:3306/db_orderingfood?charset=utf8mb4'
 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -54,16 +54,14 @@ def init_app():
     from OrderingFoodApp.routes.customer import customer_bp
     from OrderingFoodApp.routes.owner import owner_bp
     from OrderingFoodApp.routes.admin import admin_bp
+    from OrderingFoodApp.routes.home import home_bp
+    from OrderingFoodApp.routes.profile import profile_bp
 
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(customer_bp, url_prefix='/customer')
     app.register_blueprint(owner_bp, url_prefix='/owner')
     app.register_blueprint(admin_bp, url_prefix='/admin')
-
-    from OrderingFoodApp.routes.home import home_bp
     app.register_blueprint(home_bp)
-
-    from OrderingFoodApp.routes.profile import profile_bp
     app.register_blueprint(profile_bp)
 
     return app

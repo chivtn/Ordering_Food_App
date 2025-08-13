@@ -139,5 +139,18 @@ h1.text-success {
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
+.shop-block.is-disabled {
+opacity: .55;
+filter: grayscale(.3);
+}
+/* Khóa các điều khiển trong shop bị khóa */
+.shop-block.is-disabled .item-checkbox,
+.shop-block.is-disabled .select-shop,
+.shop-block.is-disabled .btn-increase,
+.shop-block.is-disabled .btn-decrease,
+.shop-block.is-disabled .btn-remove {
+pointer-events: none;
+}
+
 
 

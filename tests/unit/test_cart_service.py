@@ -60,5 +60,5 @@ def test_group_items(ctx, app):
     update_cart("add", item_id=1, quantity=2)
     items, _ = get_cart_items()
     grouped = group_items_by_restaurant(items)
-    assert "R1" in grouped
-    assert isinstance(grouped["R1"], list)
+    assert 1 in grouped
+    assert grouped[1]["name"]== "R1"
