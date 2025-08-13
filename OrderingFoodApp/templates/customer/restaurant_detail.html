@@ -16,6 +16,20 @@
                     <p class="card-text text-muted">{{ restaurant.description }}</p>
                     <p class="card-text"><i class="fas fa-map-marker-alt me-2"></i>{{ restaurant.address }}</p>
                     <p class="card-text"><i class="fas fa-phone-alt me-2"></i>{{ restaurant.phone }}</p>
+                    <p class="card-text">
+                        <i class="fas fa-clock me-2"></i>
+                        Giờ mở cửa:
+                        {{ restaurant.opening_time.strftime('%H:%M') }} – {{ restaurant.closing_time.strftime('%H:%M')
+                        }}
+                        {% if open_now is defined %}
+                        {% if open_now %}
+                        <span class="badge bg-success ms-2">Đang mở</span>
+                        {% else %}
+                        <span class="badge bg-secondary ms-2">Đang đóng</span>
+                        {% endif %}
+                        {% endif %}
+                    </p>
+
                 </div>
             </div>
         </div>

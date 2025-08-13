@@ -155,14 +155,29 @@ def restaurants_list():
                                pagination=pagination_info,
                                promos=promos)
 
+
 #Xem menu nhà hàng
-@customer_bp.route('/restaurant/<int:restaurant_id>')
+from datetime import datetime, time
+
+def _is_open_now(opening: time, closing: time, now: time) -> bool:
+    if not opening or not closing:
+        return False
+    # Hỗ trợ ca qua đêm: ví dụ 18:00 → 02:00
+    if opening <= closing:
+        return opening <= now < closing
+    else:
+        return now >= opening or now < closing
+
+@customer_bp.route("/restaurant/<int:restaurant_id>")
 def restaurant_detail(restaurant_id):
     restaurant = Restaurant.query.get_or_404(restaurant_id)
     menu_items = MenuItem.query.filter_by(restaurant_id=restaurant_id).all()
-    return render_template('customer/restaurant_detail.html',
-                         restaurant=restaurant,
-                         menu_items=menu_items)
+    now_local = datetime.now().time()  # hoặc dùng timezone nếu có
+    open_now = _is_open_now(restaurant.opening_time, restaurant.closing_time, now_local)
+    return render_template("customer/restaurant_detail.html",
+                           restaurant=restaurant,
+                           menu_items=menu_items,
+                           open_now=open_now)
 
 # Xem chi tiết món ăn
 @customer_bp.route('/menu_item/<int:menu_item_id>')
