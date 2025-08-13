@@ -7,3 +7,4 @@ if __name__ == '__main__':
     from OrderingFoodApp.routes.admin import *
 
     app.run(debug=True)
+
