@@ -157,8 +157,6 @@ def restaurants_list():
 
 
 #Xem menu nhà hàng
-from datetime import datetime, time
-
 def _is_open_now(opening: time, closing: time, now: time) -> bool:
     if not opening or not closing:
         return False
@@ -179,15 +177,31 @@ def restaurant_detail(restaurant_id):
                            menu_items=menu_items,
                            open_now=open_now)
 
+
 # Xem chi tiết món ăn
-@customer_bp.route('/menu_item/<int:menu_item_id>')
+from sqlalchemy.orm import joinedload
+@customer_bp.route("/menu_item/<int:menu_item_id>")
 def view_menu_item(menu_item_id):
-    menu_item = MenuItem.query.get_or_404(menu_item_id)
-    return render_template('customer/menu_item_detail.html', menu_item=menu_item)
+    # Eager load restaurant để tránh N+1
+    menu_item = (MenuItem.query
+                 .options(joinedload(MenuItem.restaurant))
+                 .get_or_404(menu_item_id))
+
+    now_local = datetime.now().time()  # nếu có timezone, chuyển sang tz địa phương
+    open_now = _is_open_now(menu_item.restaurant.opening_time,
+                            menu_item.restaurant.closing_time,
+                            now_local)
+
+    return render_template("customer/menu_item_detail.html",
+                           menu_item=menu_item,
+                           open_now=open_now)
+
+# @customer_bp.route('/menu_item/<int:menu_item_id>')
+# def view_menu_item(menu_item_id):
+#     menu_item = MenuItem.query.get_or_404(menu_item_id)
+#     return render_template('customer/menu_item_detail.html', menu_item=menu_item)
 
 
-#Quản lý giỏ hàng
-from OrderingFoodApp.dao import cart_service as cart_dao
 # Quản lý giỏ hàng
 from OrderingFoodApp.dao import cart_service as cart_dao
 from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify

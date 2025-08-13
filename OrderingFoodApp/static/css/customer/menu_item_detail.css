@@ -1,13 +1,13 @@
-:root {
-    --primary-color: #4361ee;
-    --accent-color: #4895ef;
-    --success-color: #4cc9f0;
-    --light-bg: #f8f9fa;
-    --dark-text: #2b2d42;
-    --light-text: #8d99ae;
-    --card-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-    --card-shadow-hover: 0 15px 35px rgba(0, 0, 0, 0.15);
-    --transition: all 0.3s ease-in-out;
+:root{
+  --primary-color:#4361ee;
+  --accent-color:#4895ef;
+  --light-bg:#f8f9fa;
+  --dark-text:#2b2d42;
+  --light-text:#8d99ae;
+  --card-shadow:0 8px 20px rgba(0,0,0,.08);
+  --card-shadow-hover:0 15px 35px rgba(0,0,0,.15);
+  --radius:20px;
+  --transition:all .3s ease-in-out;
 }
 
 body {
@@ -19,29 +19,6 @@ body {
 .container {
     max-width: 1200px;
 }
-
-/* Ảnh món ăn */
-
-.img-fluid {
-    border-radius: 20px;
-    box-shadow: var(--card-shadow);
-    transition: transform 0.6s ease, box-shadow 0.3s ease;
-}
-
-.img-fluid:hover {
-    transform: scale(1.05);
-    box-shadow: var(--card-shadow-hover);
-}
-
-.col-md-6:first-child {
-    flex: 0 0 40%; /* ảnh chiếm 40% chiều ngang */
-    max-width: 40%;
-}
-.col-md-6:last-child {
-    flex: 0 0 60%; /* nội dung chiếm 60% */
-    max-width: 60%;
-}
-
 
 /* Tiêu đề món ăn */
 h1 {
@@ -66,33 +43,20 @@ h3.text-primary {
 }
 
 /* Button Thêm vào giỏ hàng */
-.btn-success {
+.btn-success-1 {
     border-radius: 50px;
     background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
     border: none;
     transition: var(--transition);
     font-weight: 500;
+    color: #fff; /* chữ trắng */
+
 }
 
-.btn-success:hover {
+.btn-success-1:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
-}
-
-/* Button Quay lại */
-.btn-outline-secondary {
-    border-radius: 50px;
-    border: 1px solid var(--primary-color);
-    color: var(--primary-color);
-    transition: var(--transition);
-    font-weight: 500;
-}
-
-.btn-outline-secondary:hover {
-    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-    color: #fff;
-    border: none;
-    box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
+    color: #fff; /* chữ trắng */
 }
 
 /* Ẩn nút tam giác tăng giảm mặc định */
@@ -142,6 +106,88 @@ input[type="number"] {
     outline: none;
 }
 
+/* Card tổng thể */
+    .card {
+        border-radius: 20px; /* Bo góc giống ảnh */
+        transition: var(--transition);
+        box-shadow: var(--card-shadow);
+        background: #fff;
+        overflow: hidden; /* Đảm bảo ảnh bên trong không tràn góc */
+    }
 
+    .card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: var(--card-shadow-hover);
+    }
+
+    /* Ảnh món ăn */
+    .card-img-top {
+        border-radius: 20px;
+        transition: transform 0.6s ease;
+        height: 200px;
+        object-fit: cover;
+    }
+
+    .card:hover .card-img-top {
+        transform: scale(1.1);
+    }
+
+    /* Buttons */
+    .btn-outline-primary {
+        border-radius: 50px;
+        border: 1px solid var(--primary-color);
+        transition: var(--transition);
+        color: var(--primary-color);
+        font-weight: 500;
+        background: transparent;
+    }
+
+    .btn-outline-primary:hover {
+        background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+        color: #fff;
+        border: none;
+        box-shadow: 0 4px 15px rgba(67, 97, 238, 0.4);
+        transform: translateY(-2px);
+    }
+
+    .btn-outline-primary:active {
+        transform: scale(0.95);
+        box-shadow: 0 2px 8px rgba(67, 97, 238, 0.4);
+    }
+
+/*thẻ trạng thái đóng/mở nhà hàng*/
+.badge.bg-success-subtle{background:#e7f7ef;}
+.badge.bg-secondary-subtle{background:#eee;}
+
+
+.rest-card-bg {
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    color: #fff;
+}
+
+.rest-card-bg .card-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.45); /* lớp tối mờ */
+    backdrop-filter: blur(5px); /* blur nền */
+    z-index: 0;
+}
+
+.rest-card-bg .card-body {
+    position: relative;
+    z-index: 1; /* nội dung nằm trên overlay */
+}
+
+/* Badge "Đang mở" nổi bật */
+.bg-success-subtle {
+    background: linear-gradient(135deg, #28a745, #218838) !important;
+    color: #fff !important;
+}
+.bg-secondary-subtle {
+    background: rgba(255,255,255,0.3);
+    color: #fff !important;
+}
 
 
