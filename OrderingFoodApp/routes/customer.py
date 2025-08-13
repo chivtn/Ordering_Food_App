@@ -196,11 +196,6 @@ def view_menu_item(menu_item_id):
                            menu_item=menu_item,
                            open_now=open_now)
 
-# @customer_bp.route('/menu_item/<int:menu_item_id>')
-# def view_menu_item(menu_item_id):
-#     menu_item = MenuItem.query.get_or_404(menu_item_id)
-#     return render_template('customer/menu_item_detail.html', menu_item=menu_item)
-
 
 # Quản lý giỏ hàng
 from OrderingFoodApp.dao import cart_service as cart_dao
@@ -246,36 +241,21 @@ def cart():
                            total_price=total_price)
 
 
-
-# @customer_bp.route('/orders')
-# @login_required
-# def orders_history():
-#     # Chỉ lấy đơn hàng của người dùng hiện tại (current_user.id)
-#     orders = dao.get_orders_history(current_user.id)
-#
-#     # --- Prefetch review của chính user cho các đơn đang hiển thị ---
-#     order_ids = [o.id for o in orders]
-#     if order_ids:
-#         reviews = (Review.query
-#                    .filter(Review.customer_id == current_user.id,
-#                            Review.order_id.in_(order_ids))
-#                    .all())
-#         r_by_order = {r.order_id: r for r in reviews}
-#         for o in orders:
-#             o.user_review = r_by_order.get(o.id)  # None nếu chưa có
-#
-#     return render_template('customer/orders_history.html', orders=orders)
-
 @customer_bp.route('/orders')
 @login_required
 def orders_history():
+    only_completed = request.args.get('only_completed', '0') == '1'
+
     orders = dao.get_orders_history(current_user.id)
 
-    # gom review của user cho các order trên
+    if only_completed:
+        orders = [o for o in orders if getattr(o.status, 'value', o.status) == 'completed']
+
+    # gom review
     order_ids = [o.id for o in orders]
     reviews = Review.query.filter(
         Review.customer_id == current_user.id,
-        Review.order_id.in_(order_ids)
+        Review.order_id.in_(order_ids) if order_ids else False
     ).all()
     reviews_map = {r.order_id: r for r in reviews}
     for o in orders:
@@ -283,9 +263,11 @@ def orders_history():
 
     return render_template('customer/orders_history.html',
                            orders=orders,
-                           reviews_map=reviews_map)
+                           reviews_map=reviews_map,
+                           only_completed=only_completed)
 
 
+#xem chi tiết đơn hàng
 from OrderingFoodApp.dao import order_review_service as dao_order_review
 
 @customer_bp.route('/order/<int:order_id>')
@@ -328,7 +310,8 @@ def submit_order_review(order_id):
         return jsonify({'success': ok, 'message': msg}), (200 if ok else 400)
 
     flash(msg, 'success' if ok else 'warning')
-    return redirect(url_for('customer.order_detail', order_id=order_id))
+    return redirect(url_for('customer.orders_history', order_id=order_id))
+
 
 
 @customer_bp.route('/restaurant/<int:restaurant_id>/reviews')

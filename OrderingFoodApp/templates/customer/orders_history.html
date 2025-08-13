@@ -3,11 +3,20 @@
 {% block content %}
 <div class="container py-5">
     <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="fw-bold mb-0">Lịch sử đơn hàng</h1>
-            <p class="text-muted">Xem lại các đơn hàng bạn đã đặt</p>
+        <div class="col-12 d-flex justify-content-between align-items-end flex-wrap gap-2">
+            <div>
+                <h1 class="fw-bold mb-0">Lịch sử đơn hàng</h1>
+            </div>
+
+            <div>
+                <a class="btn btn-outline-secondary btn-sm"
+                   href="{{ url_for('customer.orders_history', only_completed=('0' if only_completed else '1')) }}">
+                    {{ 'Hiển thị tất cả' if only_completed else 'Chỉ đơn hoàn thành' }}
+                </a>
+            </div>
         </div>
     </div>
+
 
     <div class="row">
         {% if orders %}
@@ -224,6 +233,11 @@
       box-shadow: none !important;
       cursor: not-allowed;
     }
+
+  .btn-filter.active{
+    background-color:#0d6efd; color:#fff; border-color:#0d6efd;
+  }
+
 </style>
 
 <script>
@@ -246,31 +260,25 @@
         const curC  = (cmtI.value || '').trim();
 
         const hasOriginal = (origR !== '' || origC !== '');
-        // đổi text theo trạng thái
         btn.textContent = hasOriginal ? 'Cập nhật' : 'Gửi đánh giá';
 
-        // bật nút khi: (đã có review -> có thay đổi) HOẶC (review mới -> đã chọn sao)
         let enable;
-        if (hasOriginal) {
-          enable = (curR !== origR) || (curC !== origC);
-        } else {
-          enable = curR !== '';
-        }
+        if (hasOriginal) enable = (curR !== origR) || (curC !== origC);
+        else             enable = curR !== '';
         btn.disabled = !enable;
       }
 
-      // Khởi tạo từng form
       document.querySelectorAll('.order-review-form').forEach(form => {
         const orderId  = form.dataset.orderId;
         const starsBox = form.querySelector('.rating-stars');
         const rateI    = document.getElementById('rating-input-' + orderId);
         const cmtI     = document.getElementById('comment-' + orderId);
 
-        // Set sao ban đầu
+        // init
         paintStars(starsBox, Number(rateI.value || 0));
         updateButtonState(form);
 
-        // Click / hover sao
+        // stars
         starsBox.querySelectorAll('.star').forEach(star => {
           star.addEventListener('mouseenter', () => paintStars(starsBox, Number(star.dataset.value)));
           star.addEventListener('click', () => {
@@ -281,36 +289,70 @@
         });
         starsBox.addEventListener('mouseleave', () => paintStars(starsBox, Number(rateI.value || 0)));
 
-        // Gõ comment -> cập nhật trạng thái nút
+        // comment
         cmtI.addEventListener('input', () => updateButtonState(form));
 
-        // Khi modal mở/lấp: vẽ lại & cập nhật nút
-        const modalEl = document.getElementById('reviewModal-' + orderId);
-        if (modalEl) {
-          modalEl.addEventListener('shown.bs.modal', () => {
-            paintStars(starsBox, Number(rateI.value || 0));
-            updateButtonState(form);
-          });
-          modalEl.addEventListener('hidden.bs.modal', () => {
-            // Giữ nguyên những gì người dùng đang soạn
-            updateButtonState(form);
-          });
-        }
+        // SUBMIT = AJAX, KHÔNG đóng modal
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault(); // chặn reload/redirect
 
-        // Chặn submit khi nút đang disabled; hiển thị spinner khi gửi
-        form.addEventListener('submit', (e) => {
           const btn = form.querySelector('.btn-review-submit');
-          if (btn.disabled) {
-            e.preventDefault();
-            return;
+          if (btn.disabled) return;
+
+          const hadOriginal = (form.dataset.originalRating || form.dataset.originalComment);
+
+
+          try {
+            const fd  = new FormData(form);
+            const res = await fetch(form.action, {
+              method: 'POST',
+              headers: {'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'},
+              body: fd
+            });
+            const json = await res.json();
+            if (!res.ok || !json.success) throw new Error(json.message || 'Gửi đánh giá thất bại');
+
+            // Cập nhật "giá trị gốc" => lần sau chỉ bật nút khi có thay đổi mới
+            const rating  = (fd.get('rating') || '').toString();
+            const comment = (fd.get('comment') || '').toString().trim();
+            form.dataset.originalRating  = rating;
+            form.dataset.originalComment = comment;
+
+            // Giữ modal mở. Đổi nhãn thành "Đã lưu" và tiếp tục để nút ở trạng thái xám
+            btn.textContent = 'Cập nhập';
+            btn.disabled    = true;
+
+            // Nếu người dùng gõ thay đổi tiếp -> updateButtonState sẽ tự bật nút
+            cmtI.addEventListener('input', () => updateButtonState(form), { once: true });
+
+
+          } catch (err) {
+            console.error(err);
+            showToast(err.message || 'Có lỗi xảy ra', 'danger');
+            // phục hồi nút về lại label gốc và cho phép bấm lại
+            btn.textContent = hadOriginal ? 'Cập nhật' : 'Gửi đánh giá';
+            updateButtonState(form);
           }
-          const hasOriginal = (form.dataset.originalRating || form.dataset.originalComment);
-          btn.innerHTML =
-            '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>'
-            + (hasOriginal ? 'Đang cập nhật...' : 'Đang gửi...');
-          btn.disabled = true;
         });
       });
+
+      function showToast(msg, type='success'){
+        let el = document.getElementById('mini-toast');
+        if(!el){
+          el = document.createElement('div');
+          el.id = 'mini-toast';
+          el.style.position='fixed'; el.style.right='16px'; el.style.bottom='16px';
+          el.style.zIndex='1080';
+          document.body.appendChild(el);
+        }
+        el.innerHTML = `
+          <div class="alert alert-${type} shadow-sm mb-0" role="alert" style="border-radius:12px;">
+            ${msg}
+          </div>
+        `;
+        setTimeout(()=>{ el.innerHTML=''; }, 2200);
+      }
     });
 </script>
+
 {% endblock %}
