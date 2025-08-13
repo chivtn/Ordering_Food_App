@@ -1,3 +1,4 @@
+#models.py
 from datetime import datetime, time
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Enum, DateTime, Numeric, Text, Boolean,Time
 from sqlalchemy.orm import relationship, backref
@@ -53,7 +54,9 @@ class Gender(enum):
     female = "female"
 
 # ========== USER ==========
-class User(db.Model):
+from flask_login import UserMixin
+
+class User(db.Model, UserMixin):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False)
@@ -89,21 +92,6 @@ class User(db.Model):
     reviews = relationship('Review', backref='customer', lazy=True)
     review_responses = relationship('ReviewResponse', backref='owner', lazy=True)
     notifications = relationship('Notification', backref='user', lazy=True)
-
-    @property
-    def is_active(self):
-        return True
-
-    @property
-    def is_authenticated(self):
-        return True  # Flask-Login tự xử lý logged-in
-
-    @property
-    def is_anonymous(self):
-        return False  # Không phải user anonymous
-
-    def get_id(self):
-        return str(self.id)
 
     # ==========================================================
     # THÊM CÁC PHƯƠNG THỨC PROPERTY

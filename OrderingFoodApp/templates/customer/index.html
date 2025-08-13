@@ -4,7 +4,9 @@
 <div class="container mt-4">
     <!-- Phần chào mừng với hiệu ứng gradient -->
     <div class="text-center mb-5">
-        <h1 class="display-5 fw-bold gradient-text-animated mb-3">👋 Xin chào, {{ user.name }}!</h1>
+        <h1 class="display-5 fw-bold gradient-text-animated mb-3">
+            Xin chào{% if current_user.is_authenticated %}, {{ current_user.name }}{% endif %}!
+        </h1>
         <p class="lead text-muted">Khám phá ẩm thực đa dạng từ hàng ngàn nhà hàng chất lượng</p>
     </div>
 
@@ -19,7 +21,11 @@
                         </div>
                         <div>
                             <span class="small text-muted">Giao đến</span>
-                            <h5 class="mb-0 fw-bold">{{ current_user.address or 'Chưa có địa chỉ' }}</h5>
+                            <h5 class="mb-0 fw-bold">
+                                {{ current_user.default_address if current_user.is_authenticated else 'Chưa có địa chỉ'
+                                }}
+                            </h5>
+
                         </div>
                     </div>
                     <button class="btn btn-outline-primary rounded-pill">
@@ -377,28 +383,6 @@
         font-size: 0.85rem;
     }
 
-    /* Nút */
-    .btn {
-        border-radius: 12px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-
-    .btn-primary {
-        background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-        border: none;
-    }
-
-    .btn-primary:hover {
-        background: linear-gradient(135deg, var(--secondary), var(--gradient-end));
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
-    }
-
-    .btn-disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
 
     /* Phần địa chỉ */
     .delivery-address-card {

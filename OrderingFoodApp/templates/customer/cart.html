@@ -4,82 +4,191 @@
 {% block content %}
 <div class="container mt-5">
     <div class="contentContainer">
-    <h1 class="mb-4 text-success"><i class="fas fa-shopping-cart me-2"></i>Giỏ hàng của bạn</h1>
+        <h1 class="mb-4 text-success"><i class="fas fa-shopping-cart me-2"></i>Giỏ hàng của bạn</h1>
 
-    <div id="cartContainer" data-continue-url="{{ url_for('customer.restaurants_list') }}">
-        {% if grouped_items %}
-        <!-- Toàn bộ cart nằm trong 1 form chỉ dùng để submit checkout -->
-        <form id="cartForm" action="{{ url_for('customer.cart') }}" method="post">
-            {% for restaurant, items in grouped_items.items() %}
-            <div class="shop-block mb-4">
-                <div class="shop-header d-flex align-items-center p-3 rounded shadow-sm mb-2">
-                    <input type="checkbox" class="select-shop me-2">
-                    <i class="fas fa-store text-white me-2"></i>
-                    <strong class="shop-name text-dark">{{ restaurant }}</strong>
+        <div id="cartContainer" data-continue-url="{{ url_for('customer.restaurants_list') }}">
+            {% if grouped_items %}
+            <!-- Form chỉ dùng để submit checkout -->
+            <form id="cartForm"
+                  action="{{ url_for('customer.checkout') }}"
+                  method="post"
+                  onsubmit="return handleCartSubmit(event)">
+                <input type="hidden" name="selected_ids" id="selectedIds">
+
+                {% for id, pack in grouped_items.items() %}
+                <div class="shop-block mb-4">
+                    <div class="shop-header d-flex align-items-center p-3 rounded shadow-sm mb-2">
+                        <input type="checkbox" class="select-shop me-2">
+                        <i class="fas fa-store text-white me-2"></i>
+                        <strong class="shop-name text-dark">{{ pack.name }}</strong>
+                    </div>
+                    <div class="cart-items bg-white rounded shadow-sm">
+                        {% for item in pack['items'] %}
+                        <div class="cart-item d-flex align-items-center border-bottom py-3 px-3"
+                             data-item-id="{{ item.id }}">
+
+                            <input type="hidden" name="item_{{ item.id }}" value="{{ item.id }}">
+                            <input type="checkbox" class="item-checkbox me-3" data-subtotal="{{ item.subtotal }}">
+
+                            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="item-image rounded me-3">
+
+                            <div class="flex-grow-1">
+                                <h5 class="mb-1 text-dark">{{ item.name }}</h5>
+                                <p class="text-muted mb-0">{{ "{:,.0f} đ".format(item.price) }}</p>
+                            </div>
+
+                            <div class="quantity-control d-flex align-items-center me-3">
+                                <button type="button"
+                                        class="btn btn-outline-success btn-sm rounded-circle me-1 btn-decrease">−
+                                </button>
+                                <input type="text" class="quantity-input form-control form-control-sm text-center mx-1"
+                                       value="{{ item.quantity }}" readonly>
+                                <button type="button"
+                                        class="btn btn-outline-success btn-sm rounded-circle ms-1 btn-increase">＋
+                                </button>
+                            </div>
+
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-circle btn-remove">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
-                <div class="cart-items bg-white rounded shadow-sm">
-                    {% for item in items %}
-                    <div class="cart-item d-flex align-items-center border-bottom py-3 px-3"
-                         data-item-id="{{ item.id }}">
+                {% endfor %}
 
-                        <input type="hidden" name="item_{{ item.id }}" value="{{ item.id }}">
-                        <input type="checkbox" class="item-checkbox me-3" data-subtotal="{{ item.subtotal }}">
-
-                        <img src="{{ item.image_url }}"
-                             alt="{{ item.name }}"
-                             class="item-image rounded me-3">
-
-                        <div class="flex-grow-1">
-                            <h5 class="mb-1 text-dark">{{ item.name }}</h5>
-                            <p class="text-muted mb-0">{{ "{:,.0f} đ".format(item.price) }}</p>
-                        </div>
-
-                        <div class="quantity-control d-flex align-items-center me-3">
-                            <button type="button"
-                                    class="btn btn-outline-success btn-sm rounded-circle me-1 btn-decrease">−
-                            </button>
-                            <input type="text" class="quantity-input form-control form-control-sm text-center mx-1"
-                                   value="{{ item.quantity }}" readonly>
-                            <button type="button"
-                                    class="btn btn-outline-success btn-sm rounded-circle ms-1 btn-increase">＋
-                            </button>
-                        </div>
-
-                        <button type="button" class="btn btn-outline-danger btn-sm rounded-circle btn-remove">
-                            <i class="fas fa-trash-alt"></i>
+                <div class="checkout-bar bg-light rounded p-3 d-flex justify-content-end align-items-center shadow-sm w-auto ms-auto">
+                    <div class="d-flex align-items-center">
+                        <h5 class="mb-0 me-3">Tổng cộng:
+                            <span id="totalPrice" class="text-danger fw-bold">0 đ</span>
+                        </h5>
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-credit-card me-2"></i>Đặt hàng
                         </button>
                     </div>
-                    {% endfor %}
                 </div>
-            </div>
-            {% endfor %}
 
-            <div class="checkout-bar bg-light rounded p-3 d-flex justify-content-between align-items-center shadow-sm">
-                <div class="d-flex align-items-center">
-                    <input type="checkbox" id="selectAllGlobal" class="me-2">
-                    <label for="selectAllGlobal" class="mb-0">Chọn tất cả</label>
-                </div>
-                <div class="d-flex align-items-center">
-                    <h5 class="mb-0 me-3">Tổng cộng:
-                        <span id="totalPrice" class="text-danger fw-bold">0 đ</span>
-                    </h5>
-                    <button type="submit" class="btn btn-success btn-lg">
-                        <i class="fas fa-credit-card me-2"></i>Đặt hàng
-                    </button>
-                </div>
-            </div>
-        </form>
-
-        {% else %}
-        <p class="alert alert-info mt-4">
-            Giỏ hàng trống. <a href="{{ url_for('customer.restaurants_list') }}" class="text-success">Tiếp tục mua
-            sắm</a>
-        </p>
-        {% endif %}
-    </div>
+            </form>
+            {% else %}
+            <p class="alert alert-info mt-4">
+                Giỏ hàng trống. <a href="{{ url_for('customer.restaurants_list') }}" class="text-success">Tiếp tục mua
+                sắm</a>
+            </p>
+            {% endif %}
         </div>
+    </div>
+</div>
+
+<!-- Modal yêu cầu đăng nhập/đăng ký -->
+<div class="modal fade" id="loginRequiredModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">
+                    <i class="fas fa-lock me-2 text-warning"></i>Bạn chưa đăng nhập
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Hãy đăng nhập hoặc đăng ký để tiếp tục thanh toán.
+            </div>
+            <div class="modal-footer">
+                <a id="btnLoginNext" class="btn btn-outline-success">Đăng nhập</a>
+                <a id="btnRegisterNext" class="btn btn-success">Đăng ký</a>
+            </div>
+        </div>
+    </div>
 </div>
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/customer/cart.css') }}">
 <script src="{{ url_for('static', filename='js/customer/cart.js') }}"></script>
+
+<script>
+    // Đặt trong template để dùng được biến Jinja (current_user)
+    function handleCartSubmit(e) {
+      const checked = Array.from(document.querySelectorAll('.item-checkbox:checked'));
+      if (checked.length === 0) {
+        alert('Vui lòng chọn ít nhất 1 món.');
+        return false;
+      }
+
+      const ids = checked.map(cb => cb.closest('.cart-item').dataset.itemId);
+      document.getElementById('selectedIds').value = ids.join(',');
+
+      const isAuth = {{ 'true' if current_user.is_authenticated else 'false' }};
+      if (isAuth) return true;
+
+      // Guest: hiện modal và gắn next để quay lại checkout kèm selected_ids
+      const nextUrl = '{{ url_for("customer.checkout") }}' + '?selected_ids=' + encodeURIComponent(ids.join(','));
+      document.getElementById('btnLoginNext').href =
+        '{{ url_for("auth.login") }}' + '?next=' + encodeURIComponent(nextUrl);
+      document.getElementById('btnRegisterNext').href =
+        '{{ url_for("auth.register") }}' + '?next=' + encodeURIComponent(nextUrl);
+
+      const modal = new bootstrap.Modal(document.getElementById('loginRequiredModal'));
+      modal.show();
+      return false;
+    }
+</script>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const cartForm = document.getElementById('cartForm');
+      if (!cartForm) return;
+
+      const selectAllGlobal = document.getElementById('selectAllGlobal');
+
+      // Tìm shop đang được chọn (có ít nhất 1 món tick hoặc tick "chọn shop")
+      function getActiveShop() {
+        let active = null;
+        document.querySelectorAll('.shop-block').forEach(shop => {
+          if (active) return;
+          const hasCheckedItem = shop.querySelector('.item-checkbox:checked');
+          const shopChecked    = shop.querySelector('.select-shop:checked');
+          if (hasCheckedItem || shopChecked) active = shop;
+        });
+        return active;
+      }
+
+      // Khóa/ mở các shop theo shop đang active
+      function applyShopLock() {
+        const active = getActiveShop();
+
+        document.querySelectorAll('.shop-block').forEach(shop => {
+          const lock = !!active && shop !== active;
+          shop.classList.toggle('is-disabled', lock);
+
+          // Disable bằng thuộc tính để đừng nhận event/keyboard
+          shop.querySelectorAll('.item-checkbox, .select-shop, .btn-increase, .btn-decrease, .btn-remove')
+              .forEach(el => { el.disabled = lock; });
+        });
+      }
+
+      // Cập nhật lock khi có thay đổi chọn món/ shop
+      cartForm.addEventListener('change', (e) => {
+        if (
+          e.target.matches('.item-checkbox') ||
+          e.target.matches('.select-shop')   ||
+          e.target.id === 'selectAllGlobal'
+        ) {
+          // Nếu user tick "chọn shop", đồng bộ tick cho các món trong shop đó
+          if (e.target.matches('.select-shop')) {
+            const shop = e.target.closest('.shop-block');
+            shop.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = e.target.checked);
+          }
+          applyShopLock();
+        }
+      });
+
+      // Khi DOM giỏ hàng thay đổi (xóa món, đổi số lượng → phần tử có thể bị remove)
+      const mo = new MutationObserver(applyShopLock);
+      mo.observe(document.getElementById('cartContainer'), { childList: true, subtree: true });
+
+      // Khởi tạo
+      applyShopLock();
+    });
+</script>
+
+
 {% endblock %}

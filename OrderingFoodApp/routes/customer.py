@@ -1,19 +1,20 @@
 # customer.py
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import func
-from OrderingFoodApp.models import DiscountType
 from OrderingFoodApp.models import *
 from OrderingFoodApp.dao import customer_service as dao
-
+from datetime import datetime
+from OrderingFoodApp.dao.cart_service import get_cart_items, group_items_by_restaurant
 
 customer_bp = Blueprint('customer', __name__, url_prefix='/customer')
 
 # Giao diện trang chủ
 @customer_bp.route('/')
-@login_required
+#@login_required
 def index():
-    customer = User.query.filter_by(id=current_user.id).first()
+    # user = current_user nếu đã đăng nhập, còn không thì None
+    user = current_user if current_user.is_authenticated else None
 
     # Lấy TẤT CẢ mã khuyến mãi còn hiệu lực (không giới hạn)
     current_time = datetime.now()
@@ -26,40 +27,36 @@ def index():
     top_restaurants = (db.session.query(
         Restaurant,
         func.count(Order.id).label('order_count')
-    ).outerjoin(Order, Order.restaurant_id == Restaurant.id) \
-        .filter(Restaurant.approval_status == RestaurantApprovalStatus.APPROVED)
-        .group_by(Restaurant.id) \
-        .order_by(func.count(Order.id).desc()) \
-        .all())
+    ).outerjoin(Order, Order.restaurant_id == Restaurant.id)
+     .filter(Restaurant.approval_status == RestaurantApprovalStatus.APPROVED)
+     .group_by(Restaurant.id)
+     .order_by(func.count(Order.id).desc())
+     .all())
 
     # Lấy TẤT CẢ món ăn bán chạy (không giới hạn)
-    top_menu_items = db.session.query(
-        MenuItem,
-        Restaurant,
-        func.sum(OrderItem.quantity).label('total_sold')
-    ) \
-        .join(OrderItem, OrderItem.menu_item_id == MenuItem.id) \
-        .join(Restaurant, Restaurant.id == MenuItem.restaurant_id) \
-        .group_by(MenuItem.id, Restaurant.id) \
-        .order_by(func.sum(OrderItem.quantity).desc()) \
-        .all()
+    top_menu_items = (db.session.query(
+        MenuItem, Restaurant, func.sum(OrderItem.quantity).label('total_sold')
+    ).join(OrderItem, OrderItem.menu_item_id == MenuItem.id)
+     .join(Restaurant, Restaurant.id == MenuItem.restaurant_id)
+     .group_by(MenuItem.id, Restaurant.id)
+     .order_by(func.sum(OrderItem.quantity).desc())
+     .all())
 
     # Chuyển đổi kết quả
     featured_items = []
-    for item in top_menu_items:
-        menu_item = item[0]
-        menu_item.restaurant = item[1]
-        menu_item.total_sold = item[2] or 0
-        featured_items.append(menu_item)
+    for mi, res, sold in top_menu_items:
+        mi.restaurant = res
+        mi.total_sold = sold or 0
+        featured_items.append(mi)
 
     return render_template('customer/index.html',
-                           user=customer,
+                           user=user,
                            promos=promos,
                            top_restaurants=top_restaurants,
                            featured_items=featured_items)
 
+
 @customer_bp.route('/restaurants_list')
-@login_required
 def restaurants_list():
     search_query = request.args.get('search', '')
     search_type = request.args.get('search_type', 'restaurants')  # Mặc định là tìm nhà hàng
@@ -160,7 +157,6 @@ def restaurants_list():
 
 #Xem menu nhà hàng
 @customer_bp.route('/restaurant/<int:restaurant_id>')
-@login_required
 def restaurant_detail(restaurant_id):
     restaurant = Restaurant.query.get_or_404(restaurant_id)
     menu_items = MenuItem.query.filter_by(restaurant_id=restaurant_id).all()
@@ -170,7 +166,6 @@ def restaurant_detail(restaurant_id):
 
 # Xem chi tiết món ăn
 @customer_bp.route('/menu_item/<int:menu_item_id>')
-@login_required
 def view_menu_item(menu_item_id):
     menu_item = MenuItem.query.get_or_404(menu_item_id)
     return render_template('customer/menu_item_detail.html', menu_item=menu_item)
@@ -178,53 +173,49 @@ def view_menu_item(menu_item_id):
 
 #Quản lý giỏ hàng
 from OrderingFoodApp.dao import cart_service as cart_dao
+# Quản lý giỏ hàng
+from OrderingFoodApp.dao import cart_service as cart_dao
+from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
+from OrderingFoodApp.models import MenuItem
+
 @customer_bp.route('/cart', methods=['GET', 'POST'])
 def cart():
-    cart = cart_dao.init_cart()
+    """
+    - GET: render giỏ hàng (group theo nhà hàng)
+    - POST:
+        + AJAX: increase/decrease/remove -> trả về JSON {quantity, subtotal}
+        + Form thường (add/decrease/remove) -> cập nhật rồi redirect /customer/cart
+    - Khi user đã đăng nhập, mọi thay đổi đều được đồng bộ xuống DB (do cart_dao.update_cart làm sẵn)
+    """
+    cart_dao.init_cart()  # đảm bảo có session['cart']
 
     if request.method == 'POST':
-        action = request.form.get('action')
-        item_id = request.form.get('item_id')
-        qty = request.form.get('quantity', 1, type=int)
+        action  = request.form.get('action')           # add | increase | decrease | remove
+        item_id = request.form.get('item_id')          # id món (str/int)
+        qty     = request.form.get('quantity', type=int, default=1)
 
-        # AJAX?
+        if not item_id:
+            return redirect(url_for('customer.cart'))
+
+        # ----- AJAX -----
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             new_cart = cart_dao.update_cart(action, item_id, qty)
             menu_item = MenuItem.query.get(int(item_id))
-            quantity = new_cart.get(str(item_id), 0)
-            subtotal = float(menu_item.price) * quantity
+            quantity  = int(new_cart.get(str(item_id), 0))
+            subtotal  = float(menu_item.price) * quantity if menu_item else 0.0
             return jsonify({'quantity': quantity, 'subtotal': subtotal})
 
-    if request.method == 'POST':
-        action  = request.form.get('action')
-        item_id = request.form.get('item_id')
-        if not item_id:
-            return redirect(url_for('customer.cart'))
-        item_id = str(item_id)
-
-        # ——— AJAX request ———
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            cart_dao.update_cart(action, item_id)
-            menu_item = MenuItem.query.get(int(item_id))
-            quantity = cart.get(item_id, 0)
-            subtotal = float(menu_item.price) * quantity
-            return jsonify({'quantity': quantity, 'subtotal': subtotal})
-
-        # ——— Form submit (bình thường) ———
-        if action == 'add':
-            qty = int(request.form.get('quantity', 1))
-            cart_dao.update_cart(action, item_id, qty)
-        else:
-            cart_dao.update_cart(action, item_id)
-
+        # ----- Submit form thường -----
+        cart_dao.update_cart(action, item_id, qty)
         return redirect(url_for('customer.cart'))
 
-    # GET → render template
+    # ----- GET -> render -----
     items, total_price = cart_dao.get_cart_items()
-    grouped_items    = cart_dao.group_items_by_restaurant(items)
+    grouped_items      = cart_dao.group_items_by_restaurant(items)
     return render_template('customer/cart.html',
                            grouped_items=grouped_items,
                            total_price=total_price)
+
 
 
 @customer_bp.route('/orders')
@@ -255,7 +246,6 @@ def order_detail(order_id):
                            payment=payment)
 
 @customer_bp.route('/restaurant/<int:restaurant_id>/reviews')
-@login_required
 def restaurant_reviews(restaurant_id):
     restaurant = Restaurant.query.get_or_404(restaurant_id)
     reviews = restaurant.reviews  # tất cả reviews đã load sẵn quan hệ ORM
@@ -264,138 +254,128 @@ def restaurant_reviews(restaurant_id):
                            reviews=reviews)
 
 
-#Đặc hàng
-@customer_bp.route('/process_checkout', methods=['POST'])
+#Đặt hàng
+@customer_bp.route('/checkout', methods=['GET', 'POST'])
 @login_required
 def checkout():
-    # Lấy danh sách các món được chọn từ form
-    selected_items = request.form.getlist('selected_items')
+    items, total_price = get_cart_items()
 
-    # Lấy thông tin giỏ hàng từ session
-    cart = session.get('cart', {})
+    selected_ids = request.args.get('selected_ids') or request.form.get('selected_ids')
+    if selected_ids:
+        chosen = set(map(int, selected_ids.split(',')))
+        items = [i for i in items if i['id'] in chosen]
+        total_price = sum(i['subtotal'] for i in items)
 
-    # Tạo danh sách các món hàng được chọn với thông tin đầy đủ
-    selected_items_info = []
-    total_price = 0
-    for item_id in selected_items:
-        if item_id in cart:
-            menu_item = MenuItem.query.get(int(item_id))
-            if menu_item:
-                quantity = cart[item_id]
-                subtotal = float(menu_item.price) * quantity
-                total_price += subtotal
-                selected_items_info.append({
-                    'id': menu_item.id,
-                    'name': menu_item.name,
-                    'price': float(menu_item.price),
-                    'quantity': quantity,
-                    'subtotal': subtotal,
-                    'restaurant': menu_item.restaurant.name,
-                    'image_url': menu_item.image_url
-                })
+    if not items:
+        flash('Giỏ hàng trống hoặc chưa chọn món.', 'warning')
+        return redirect(url_for('customer.cart'))
 
-    # Nhóm các món theo nhà hàng
-    grouped_items = {}
-    for item in selected_items_info:
-        grouped_items.setdefault(item['restaurant'], []).append(item)
-
-    # Lưu dữ liệu vào session để sử dụng trong trang GET checkout
+    # LƯU DẠNG PHẲNG (flat)
     session['checkout_data'] = {
-        'grouped_items': grouped_items,
-        'total_price': total_price
+        'items': items,
+        'total_price': float(total_price)
     }
+    session.modified = True
 
-    return redirect(url_for('customer.checkout_page'))
+    return render_template('customer/checkout.html',
+                           items=items,
+                           total_price=total_price)
+
 
 
 @customer_bp.route('/place_order', methods=['POST'])
 @login_required
 def place_order():
     try:
-        # Lấy phương thức thanh toán từ request
-        data = request.json
+        data = request.get_json(silent=True) or {}
         payment_method_value = data.get('payment_method', 'cash_on_delivery')
-        applied_promo = data.get('applied_promo')  # Lấy thông tin mã giảm giá đã áp dụng
-
+        applied_promo        = data.get('applied_promo')  # {'code': '...', 'final_amount': ...}
         payment_method = PaymentMethod(payment_method_value)
 
-        # Lấy dữ liệu từ session
-        checkout_data = session.get('checkout_data', {})
+        checkout_data = session.get('checkout_data') or {}
         if not checkout_data:
-            return jsonify({'success': False, 'message': 'Không có dữ liệu thanh toán'}), 400
+            return jsonify({'success': False, 'message': 'Không có dữ liệu thanh toán.'}), 400
 
-        grouped_items = checkout_data['grouped_items']
-        total_amount = checkout_data['total_price']
+        # ƯU TIÊN items (flat). Fallback: flatten từ grouped_items nếu còn session cũ
+        items = checkout_data.get('items') or []
+        if not items and checkout_data.get('grouped_items'):
+            items = []
+            for pack in checkout_data['grouped_items'].values():
+                sub = pack.get('items') if isinstance(pack, dict) else pack
+                if sub: items.extend(sub)
 
-        # Lấy restaurant_id từ món đầu tiên
-        first_restaurant = next(iter(grouped_items.keys()))
-        first_item = grouped_items[first_restaurant][0]
-        menu_item = MenuItem.query.get(first_item['id'])
-        restaurant_id = menu_item.restaurant_id
+        total_amount = float(checkout_data.get('total_price', 0))
 
-        # Xử lý mã giảm giá nếu có
+        unique_restaurant_ids = set()
+        all_items_flat = []   # [(MenuItem, qty)]
+        for it in items:
+            mi = MenuItem.query.get(int(it['id']))
+            if not mi:
+                return jsonify({'success': False, 'message': 'Món ăn không còn tồn tại.'}), 400
+            unique_restaurant_ids.add(mi.restaurant_id)
+            qty = int(it.get('quantity', 1))
+            all_items_flat.append((mi, qty))
+
+        if not all_items_flat:
+            return jsonify({'success': False, 'message': 'Giỏ hàng trống.'}), 400
+        if len(unique_restaurant_ids) != 1:
+            return jsonify({'success': False, 'message': 'Chỉ được đặt món từ một nhà hàng trong một đơn.'}), 400
+
+        restaurant_id = unique_restaurant_ids.pop()
+
+        # Áp mã giảm giá nếu có
         promo_id = None
-        if applied_promo:
+        if applied_promo and applied_promo.get('code'):
             promo = PromoCode.query.filter_by(code=applied_promo['code']).first()
             if promo:
                 promo_id = promo.id
-                total_amount = applied_promo['final_amount']  # Sử dụng tổng sau giảm giá
+                total_amount = float(applied_promo.get('final_amount', total_amount))
 
-        # Tạo đơn hàng với mã giảm giá
+        # Tạo Order + Items + Payment
         new_order = Order(
             customer_id=current_user.id,
             restaurant_id=restaurant_id,
-            promo_code_id=promo_id,  # Thêm mã giảm giá
-            total_amount=total_amount,  # Sử dụng tổng sau giảm giá
+            promo_code_id=promo_id,
+            total_amount=total_amount,
             status=OrderStatus.PENDING
         )
         db.session.add(new_order)
         db.session.flush()
 
-        # Thêm các món vào đơn hàng
-        for restaurant, items in grouped_items.items():
-            for item in items:
-                menu_item = MenuItem.query.get(item['id'])
-                order_item = OrderItem(
-                    order_id=new_order.id,
-                    menu_item_id=menu_item.id,
-                    quantity=item['quantity'],
-                    price=menu_item.price
-                )
-                db.session.add(order_item)
+        for mi, qty in all_items_flat:
+            db.session.add(OrderItem(
+                order_id=new_order.id,
+                menu_item_id=mi.id,
+                quantity=qty,
+                price=mi.price
+            ))
 
-        # Tạo thanh toán
-        payment = Payment(
+        db.session.add(Payment(
             order_id=new_order.id,
             amount=total_amount,
             method=payment_method,
             status=PaymentStatus.PENDING
-        )
-        db.session.add(payment)
+        ))
 
-        # Xóa các món đã đặt khỏi giỏ hàng
-        cart = session.get('cart', {})
-        for restaurant, items in grouped_items.items():
-            for item in items:
-                item_id_str = str(item['id'])
-                if item_id_str in cart:
-                    del cart[item_id_str]
-
-        # Cập nhật lại giỏ hàng
-        session['cart'] = cart
+        # Xoá các món đã đặt khỏi giỏ (session) và commit
+        session_cart = session.get('cart', {})
+        for mi, _ in all_items_flat:
+            session_cart.pop(str(mi.id), None)
+        session['cart'] = session_cart
         session.pop('checkout_data', None)
-
         db.session.commit()
 
-        # Tạo thông báo
-        notification = Notification(
+        # Đồng bộ giỏ DB theo session
+        cart_dao._sync_db_from_session()
+
+        # Thông báo
+        db.session.add(Notification(
             user_id=current_user.id,
             order_id=new_order.id,
             type=NotificationType.ORDER_STATUS,
             message=f"Đơn hàng #{new_order.id} đã được đặt thành công.",
             is_read=False
-        )
-        db.session.add(notification)
+        ))
         db.session.commit()
 
         return jsonify({
@@ -407,27 +387,8 @@ def place_order():
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': f'Có lỗi xảy ra: {str(e)}'
-        }), 500
+        return jsonify({'success': False, 'message': f'Có lỗi xảy ra: {e}'}), 500
 
-
-# customer.py - Thêm route GET cho checkout
-@customer_bp.route('/checkout', methods=['GET'])
-@login_required
-def checkout_page():
-    # Lấy thông tin từ session
-    checkout_data = session.get('checkout_data', {})
-
-    if not checkout_data:
-        flash('Không có dữ liệu thanh toán', 'error')
-        return redirect(url_for('customer.cart'))
-
-    return render_template('customer/checkout.html',
-                           grouped_items=checkout_data['grouped_items'],
-                           total_price=checkout_data['total_price'],
-                           DiscountType=DiscountType)
 
 
 @customer_bp.route('/current_orders')

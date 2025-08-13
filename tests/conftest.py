@@ -6,7 +6,6 @@ from flask import Flask
 
 from OrderingFoodApp import init_app, db
 
-
 @pytest.fixture(scope='session')
 def app():
     # Cho biết ta đang ở môi trường test
@@ -17,8 +16,8 @@ def app():
     app.config.update({
         'TESTING': True,
         # Chỉ điểm tới database test (tạo trước bằng Workbench)
-        # 'SQLALCHEMY_DATABASE_URI': 'mysql+pymysql://root:password@127.0.0.1:3306/test_db',
-        'SQLALCHEMY_DATABASE_URI': 'mysql+pymysql://root:26032004@localhost/test_db',
+        'SQLALCHEMY_DATABASE_URI': 'mysql+pymysql://root:askme@127.0.0.1:3306/test_db',
+        # 'SQLALCHEMY_DATABASE_URI': 'mysql+pymysql://root:26032004@localhost/test_db?charset=utf8mb4',
         # 'SQLALCHEMY_DATABASE_URI' = 'mysql+pymysql://username:password@localhost:3306/test_db',
         'WTF_CSRF_ENABLED': False,
         'SECRET_KEY': 'test-secret',
