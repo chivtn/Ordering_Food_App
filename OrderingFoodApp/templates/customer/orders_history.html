@@ -34,7 +34,6 @@
                         </div>
 
                         <div class="d-flex flex-wrap gap-2 mb-3">
-                            <!-- Sửa: Thay thế filter slice bằng slicing trực tiếp -->
                             {% if order.order_items %}
                             {% for item in order.order_items[:3] %}
                             <img src="{{ item.menu_item.image_url }}"
@@ -57,7 +56,6 @@
                         </div>
 
                         <div class="mb-2">
-                            <!-- Sửa: Thay thế filter slice bằng slicing trực tiếp -->
                             {% if order.order_items %}
                             {% for item in order.order_items[:2] %}
                             <div class="d-flex justify-content-between small">
@@ -84,11 +82,10 @@
 
                         <div class="text-end">
                             <div class="small text-muted"></div>
-                            <!-- CHỈNH SỬA Ở ĐÂY: Tất cả trạng thái đều dùng màu vàng -->
                             {% if order.status.value == 'completed' %}
-                            <span class="badge bg-warning py-2 px-3 me-2 fs-6">Hoàn thành</span>
+                            <span class="badge bg-success text-white py-2 px-3 me-2 fs-6">Hoàn thành</span>
                             {% elif order.status.value == 'cancelled' %}
-                            <span class="badge bg-warning py-2 px-3 me-2 fs-6">Đã hủy</span>
+                            <span class="badge bg-danger text-white py-2 px-3 me-2 fs-6">Đã hủy</span>
                             {% else %}
                             <span class="badge bg-warning py-2 px-3 me-2">{{ order.status.value }}</span>
                             {% endif %}
@@ -102,6 +99,29 @@
                         <i class="fas fa-eye me-1"></i> Xem chi tiết
                     </a>
                 </div>
+
+                <div class="card-footer bg-white border-0">
+                    {% if order.status.value == 'completed' %}
+                    <button type="button"
+                            class="btn btn-outline-primary w-100 rounded-pill"
+                            data-bs-toggle="modal"
+                            data-bs-target="#reviewModal-{{ order.id }}">
+                        <i class="fas fa-star me-1"></i>
+                        {% if order.user_review %}Xem/Sửa đánh giá{% else %}Đánh giá đơn hàng{% endif %}
+                    </button>
+                    {% elif order.status.value == 'cancelled' %}
+                    <button type="button" class="btn btn-secondary w-100 rounded-pill" disabled
+                            title="Đơn đã hủy, không thể đánh giá">
+                        <i class="fas fa-star me-1"></i> Đánh giá đơn hàng
+                    </button>
+                    {% else %}
+                    <button type="button" class="btn btn-secondary w-100 rounded-pill" disabled
+                            title="Chỉ đánh giá khi đơn đã hoàn thành">
+                        <i class="fas fa-star me-1"></i> Đánh giá đơn hàng
+                    </button>
+                    {% endif %}
+                </div>
+
             </div>
         </div>
         {% endfor %}
@@ -122,21 +142,175 @@
     </div>
 </div>
 
+{# ---- PORTAL: đặt tất cả modal ra cuối trang để tránh reflow/giật ---- #}
+{% if orders %}
+{% for order in orders if order.status.value == 'completed' %}
+<div class="modal" id="reviewModal-{{ order.id }}"
+     data-bs-backdrop="static" data-bs-keyboard="false" data-bs-scroll="true"
+     tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post"
+              action="{{ url_for('customer.submit_order_review', order_id=order.id) }}"
+              class="modal-content order-review-form"
+              data-order-id="{{ order.id }}"
+              data-original-rating="{{ order.user_review.rating if order.user_review else '' }}"
+              data-original-comment="{{ (order.user_review.comment or '')|e if order.user_review else '' }}">
+            <div class="modal-header">
+                <h5 class="modal-title">Đánh giá đơn #{{ order.id }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+
+            <div class="modal-body">
+                <label class="form-label">Chọn số sao</label>
+                <div class="rating-stars d-flex align-items-center gap-1 fs-4"
+                     data-order-id="{{ order.id }}">
+                    {% for i in [1,2,3,4,5] %}
+                    <i class="fas fa-star star text-muted" role="button" data-value="{{ i }}"
+                       aria-label="{{ i }} sao"></i>
+                    {% endfor %}
+                </div>
+
+                <input type="hidden" name="rating" id="rating-input-{{ order.id }}"
+                       value="{{ order.user_review.rating if order.user_review else '' }}">
+
+                <div class="mt-3">
+                    <label class="form-label">Nhận xét (tuỳ chọn)</label>
+                    <textarea name="comment" id="comment-{{ order.id }}" class="form-control" rows="3"
+                              placeholder="Chất lượng món, đóng gói, thời gian giao...">{{ order.user_review.comment if order.user_review else '' }}</textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="submit" class="btn btn-review-submit" disabled>
+                    {{ 'Cập nhật' if order.user_review else 'Gửi đánh giá' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
 <style>
     .card {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
         border-radius: 12px;
         overflow: hidden;
     }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,.1); }
+    .badge { font-weight: 500; padding: 5px 10px; }
 
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    /* Sao */
+    .rating-stars .star { cursor: pointer; display: inline-block; line-height: 1; user-select: none; transition: opacity .1s ease; }
+    .rating-stars .star:hover { opacity: .9; }
+
+    /* Nút submit review */
+    .btn-review-submit{
+      background-color: var(--bs-primary, #0d6efd) !important;
+      color: #fff !important;
+      border: none !important;
+      border-radius: 999px;
+      padding: .5rem 1.25rem;
+      font-weight: 600;
+      box-shadow: 0 6px 18px rgba(13,110,253,.25);
+      transition: transform .05s ease, filter .15s ease, box-shadow .15s ease;
     }
-
-    .badge {
-        font-weight: 500;
-        padding: 5px 10px;
+    .btn-review-submit:hover{ filter: brightness(.95); }
+    .btn-review-submit:active{ transform: translateY(1px); }
+    .btn-review-submit:disabled{
+      background-color: #adb5bd !important;
+      color: #fff !important;
+      box-shadow: none !important;
+      cursor: not-allowed;
     }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+      function paintStars(container, value) {
+        container.querySelectorAll('.star').forEach(star => {
+          const v = Number(star.dataset.value);
+          star.classList.toggle('text-warning', v <= value);
+          star.classList.toggle('text-muted',   v >  value);
+        });
+      }
+
+      function updateButtonState(form){
+        const btn   = form.querySelector('.btn-review-submit');
+        const rateI = form.querySelector('input[name="rating"]');
+        const cmtI  = form.querySelector('textarea[name="comment"]');
+        const origR = (form.dataset.originalRating || '').toString();
+        const origC = (form.dataset.originalComment || '').trim();
+        const curR  = (rateI.value || '').toString();
+        const curC  = (cmtI.value || '').trim();
+
+        const hasOriginal = (origR !== '' || origC !== '');
+        // đổi text theo trạng thái
+        btn.textContent = hasOriginal ? 'Cập nhật' : 'Gửi đánh giá';
+
+        // bật nút khi: (đã có review -> có thay đổi) HOẶC (review mới -> đã chọn sao)
+        let enable;
+        if (hasOriginal) {
+          enable = (curR !== origR) || (curC !== origC);
+        } else {
+          enable = curR !== '';
+        }
+        btn.disabled = !enable;
+      }
+
+      // Khởi tạo từng form
+      document.querySelectorAll('.order-review-form').forEach(form => {
+        const orderId  = form.dataset.orderId;
+        const starsBox = form.querySelector('.rating-stars');
+        const rateI    = document.getElementById('rating-input-' + orderId);
+        const cmtI     = document.getElementById('comment-' + orderId);
+
+        // Set sao ban đầu
+        paintStars(starsBox, Number(rateI.value || 0));
+        updateButtonState(form);
+
+        // Click / hover sao
+        starsBox.querySelectorAll('.star').forEach(star => {
+          star.addEventListener('mouseenter', () => paintStars(starsBox, Number(star.dataset.value)));
+          star.addEventListener('click', () => {
+            rateI.value = Number(star.dataset.value);
+            paintStars(starsBox, Number(rateI.value));
+            updateButtonState(form);
+          });
+        });
+        starsBox.addEventListener('mouseleave', () => paintStars(starsBox, Number(rateI.value || 0)));
+
+        // Gõ comment -> cập nhật trạng thái nút
+        cmtI.addEventListener('input', () => updateButtonState(form));
+
+        // Khi modal mở/lấp: vẽ lại & cập nhật nút
+        const modalEl = document.getElementById('reviewModal-' + orderId);
+        if (modalEl) {
+          modalEl.addEventListener('shown.bs.modal', () => {
+            paintStars(starsBox, Number(rateI.value || 0));
+            updateButtonState(form);
+          });
+          modalEl.addEventListener('hidden.bs.modal', () => {
+            // Giữ nguyên những gì người dùng đang soạn
+            updateButtonState(form);
+          });
+        }
+
+        // Chặn submit khi nút đang disabled; hiển thị spinner khi gửi
+        form.addEventListener('submit', (e) => {
+          const btn = form.querySelector('.btn-review-submit');
+          if (btn.disabled) {
+            e.preventDefault();
+            return;
+          }
+          const hasOriginal = (form.dataset.originalRating || form.dataset.originalComment);
+          btn.innerHTML =
+            '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>'
+            + (hasOriginal ? 'Đang cập nhật...' : 'Đang gửi...');
+          btn.disabled = true;
+        });
+      });
+    });
+</script>
 {% endblock %}

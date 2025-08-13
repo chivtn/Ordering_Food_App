@@ -264,17 +264,25 @@ class PromoCode(db.Model):
 
 
 # ========== REVIEW ==========
+from sqlalchemy import UniqueConstraint, CheckConstraint
+
 class Review(db.Model):
     __tablename__ = 'reviews'
     id = Column(Integer, primary_key=True, autoincrement=True)
     customer_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     restaurant_id = Column(Integer, ForeignKey('restaurants.id'), nullable=False)
-    order_id = Column(Integer, ForeignKey('orders.id'))
-    rating = Column(Integer, nullable=False)  # customer–5
+    order_id = Column(Integer, ForeignKey('orders.id'))  # sẽ set != NULL cho review theo đơn
+    rating = Column(Integer, nullable=False)             # 1..5
     comment = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     responses = relationship('ReviewResponse', backref='review', lazy=True)
+
+    __table_args__ = (
+        # 1 khách chỉ 1 review cho 1 đơn (đơn hàng). Cho phép nhiều review không gắn đơn (order_id NULL) nếu bạn dùng cho case khác.
+        UniqueConstraint('customer_id', 'order_id', name='uq_review_customer_order'),
+        CheckConstraint('rating BETWEEN 1 AND 5', name='ck_review_rating_range'),
+    )
 
 
 class ReviewResponse(db.Model):

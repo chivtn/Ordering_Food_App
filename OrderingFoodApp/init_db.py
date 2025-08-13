@@ -161,32 +161,35 @@ def seed_data():
                 db.session.add(order_item)
 
             # Thanh toán
+            payment_status = PaymentStatus.COMPLETED if order_status == OrderStatus.COMPLETED else PaymentStatus.PENDING
             payment = Payment(
                 order_id=order.id,
                 amount=total_amount,
                 method=PaymentMethod.CASH_ON_DELIVERY,
-                status=PaymentStatus.COMPLETED
+                status=payment_status
             )
             db.session.add(payment)
 
             # Đánh giá
-            review = Review(
-                customer_id=customer.id,
-                restaurant_id=selected_restaurant.id,
-                order_id=order.id,
-                rating=random.randint(4, 5),
-                comment=fake.sentence(nb_words=12)
-            )
-            db.session.add(review)
-            db.session.flush()
+            review = None
+            if order_status == OrderStatus.COMPLETED:
+                review = Review(
+                    customer_id=customer.id,
+                    restaurant_id=selected_restaurant.id,
+                    order_id=order.id,
+                    rating=random.randint(4, 5),
+                    comment=fake.sentence(nb_words=12)
+                )
+                db.session.add(review)
 
-            # Phản hồi đánh giá
-            response = ReviewResponse(
-                review_id=review.id,
-                owner_id=selected_restaurant.owner_id,
-                response_text="Cảm ơn bạn đã ủng hộ quán!"
-            )
-            db.session.add(response)
+                # Phản hồi đánh giá
+                response = ReviewResponse(
+                    review=review,  # dùng relationship thay vì review_id
+                    owner_id=selected_restaurant.owner_id,
+                    response_text="Cảm ơn bạn đã ủng hộ quán!"
+                )
+                db.session.add(response)
+
 
             # Thông báo
             notification = Notification(

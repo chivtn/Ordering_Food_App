@@ -247,13 +247,46 @@ def cart():
 
 
 
+# @customer_bp.route('/orders')
+# @login_required
+# def orders_history():
+#     # Chỉ lấy đơn hàng của người dùng hiện tại (current_user.id)
+#     orders = dao.get_orders_history(current_user.id)
+#
+#     # --- Prefetch review của chính user cho các đơn đang hiển thị ---
+#     order_ids = [o.id for o in orders]
+#     if order_ids:
+#         reviews = (Review.query
+#                    .filter(Review.customer_id == current_user.id,
+#                            Review.order_id.in_(order_ids))
+#                    .all())
+#         r_by_order = {r.order_id: r for r in reviews}
+#         for o in orders:
+#             o.user_review = r_by_order.get(o.id)  # None nếu chưa có
+#
+#     return render_template('customer/orders_history.html', orders=orders)
+
 @customer_bp.route('/orders')
 @login_required
 def orders_history():
-    # Chỉ lấy đơn hàng của người dùng hiện tại (current_user.id)
     orders = dao.get_orders_history(current_user.id)
-    return render_template('customer/orders_history.html', orders=orders)
 
+    # gom review của user cho các order trên
+    order_ids = [o.id for o in orders]
+    reviews = Review.query.filter(
+        Review.customer_id == current_user.id,
+        Review.order_id.in_(order_ids)
+    ).all()
+    reviews_map = {r.order_id: r for r in reviews}
+    for o in orders:
+        o.user_review = reviews_map.get(o.id)
+
+    return render_template('customer/orders_history.html',
+                           orders=orders,
+                           reviews_map=reviews_map)
+
+
+from OrderingFoodApp.dao import order_review_service as dao_order_review
 
 @customer_bp.route('/order/<int:order_id>')
 @login_required
@@ -262,17 +295,41 @@ def order_detail(order_id):
     order = Order.query.filter_by(id=order_id, customer_id=current_user.id).first_or_404()
 
     # Lấy các món trong đơn hàng
-    order_items = OrderItem.query.filter_by(order_id=order_id) \
-        .join(MenuItem) \
-        .all()
+    order_items = (OrderItem.query
+                   .filter_by(order_id=order_id)
+                   .join(MenuItem)
+                   .all())
 
     # Lấy thông tin thanh toán nếu có
     payment = Payment.query.filter_by(order_id=order_id).first()
 
+    # NEW: dữ liệu review
+    order_review = dao_order_review.get_order_review(current_user.id, order_id)
+    can_review, reason, _ = dao_order_review.can_review_order(current_user.id, order_id)
+
     return render_template('customer/orders_history_detail.html',
                            order=order,
                            order_items=order_items,
-                           payment=payment)
+                           payment=payment,
+                           order_review=order_review,
+                           can_review=can_review,
+                           cannot_reason=reason)
+
+@customer_bp.route('/order/<int:order_id>/review', methods=['POST'])
+@login_required
+def submit_order_review(order_id):
+    rating  = request.form.get('rating', type=int)
+    comment = request.form.get('comment', '', type=str)
+
+    ok, msg = dao_order_review.upsert_order_review(current_user.id, order_id, rating, comment)
+
+    # Hỗ trợ cả AJAX & form thường
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': ok, 'message': msg}), (200 if ok else 400)
+
+    flash(msg, 'success' if ok else 'warning')
+    return redirect(url_for('customer.order_detail', order_id=order_id))
+
 
 @customer_bp.route('/restaurant/<int:restaurant_id>/reviews')
 def restaurant_reviews(restaurant_id):
