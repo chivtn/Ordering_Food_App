@@ -147,7 +147,7 @@ def owner_restaurants():
     return render_template('owner/restaurants.html', restaurants=formatted_restaurants)
 
 
-# owner.py (phần sửa đổi)
+
 
 ### RESTAURANTS
 @owner_bp.route('/restaurants/add', methods=['GET', 'POST'])
@@ -662,7 +662,6 @@ def update_order_status(order_id):
     else:
         return jsonify({'success': False, 'message': 'Không thể chuyển sang trạng thái này'})
 
-
 ##33##doanh thu####
 
 @owner_bp.route('/statistics', methods=['GET'])
@@ -708,3 +707,100 @@ def advanced_statistics():
                          time_range=time_range,
                          start_date=start_date,
                          end_date=end_date)
+
+
+# =========================
+# QUẢN LÝ PHẢN HỒI ĐÁNH GIÁ
+# =========================
+from OrderingFoodApp.dao.review_owner import dao_review_owner
+
+@owner_bp.route('/reviews')
+@login_required
+def owner_reviews():
+    page = request.args.get('page', 1, type=int)
+    only_unanswered = request.args.get('only_unanswered', '0') == '1'
+
+    reviews_page = dao_review_owner.list_reviews_of_owner(
+        owner_id=current_user.id,
+        page=page,
+        per_page=10,
+        only_unanswered=only_unanswered
+    )
+
+    # Chuẩn hoá data cho template
+    items = []
+    for rv in reviews_page.items:
+        resp = ReviewResponse.query.filter_by(review_id=rv.id, owner_id=current_user.id).first()
+        customer = User.query.get(rv.customer_id)
+        items.append({
+            'id': rv.id,
+            'order_id': rv.order_id,
+            'restaurant_id': rv.restaurant_id,
+            'customer_name': customer.name if customer else 'Khách hàng',
+            'rating': rv.rating,
+            'comment': rv.comment,
+            'created_at': rv.created_at.strftime('%d/%m/%Y %H:%M'),
+            'response_text': resp.response_text if resp else None
+        })
+
+    return render_template('owner/reviews.html',
+                           reviews=items,
+                           pagination=reviews_page,
+                           only_unanswered=only_unanswered)
+
+from OrderingFoodApp.dao.order_owner import OrderDAO
+
+@owner_bp.route('/reviews/<int:review_id>')
+@login_required
+def owner_review_detail(review_id):
+    rv = dao_review_owner.get_review_detail(current_user.id, review_id)
+    if not rv:
+        flash('Không tìm thấy đánh giá hoặc bạn không có quyền.', 'danger')
+        return redirect(url_for('owner.owner_reviews'))
+
+    resp = ReviewResponse.query.filter_by(review_id=rv.id, owner_id=current_user.id).first()
+    customer = User.query.get(rv.customer_id)
+
+    # LẤY THÊM THÔNG TIN ĐƠN HÀNG
+    order_summary = None
+    if rv.order_id:
+        # Tận dụng cùng DTO như trang chi tiết đơn
+        order_summary = OrderDAO.get_order_details(rv.order_id)  # trả về dict
+
+    data = {
+        'id': rv.id,
+        'order_id': rv.order_id,
+        'restaurant_id': rv.restaurant_id,
+        'customer_name': customer.name if customer else 'Khách hàng',
+        'rating': rv.rating,
+        'comment': rv.comment,
+        'created_at': rv.created_at.strftime('%d/%m/%Y %H:%M'),
+        'response_text': resp.response_text if resp else ''
+    }
+    return render_template('owner/review_detail.html',
+                           review=data,
+                           order_summary=order_summary)
+
+@owner_bp.route('/reviews/<int:review_id>/respond', methods=['POST'])
+@login_required
+def owner_review_respond(review_id):
+    response_text = request.form.get('response_text', '').strip()
+
+    ok, msg = dao_review_owner.upsert_response(
+        owner_id=current_user.id,
+        review_id=review_id,
+        response_text=response_text
+    )
+    if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+        return jsonify({'success': ok, 'message': msg})
+    flash(msg, 'success' if ok else 'danger')
+    return redirect(url_for('owner.owner_review_detail', review_id=review_id))
+
+@owner_bp.route('/reviews/<int:review_id>/response/delete', methods=['POST'])
+@login_required
+def owner_review_delete_response(review_id):
+    ok, msg = dao_review_owner.delete_response(current_user.id, review_id)
+    if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+        return jsonify({'success': ok, 'message': msg})
+    flash(msg, 'success' if ok else 'danger')
+    return redirect(url_for('owner.owner_review_detail', review_id=review_id))

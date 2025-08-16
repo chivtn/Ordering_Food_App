@@ -10,14 +10,14 @@
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
     {% endwith %}
 
     <div class="card shadow-sm mb-4">
@@ -31,31 +31,35 @@
                         <label class="form-label">Nhà hàng</label>
                         <select name="restaurant_id" class="form-select" onchange="this.form.submit()">
                             {% for restaurant in restaurants %}
-                                <option value="{{ restaurant.id }}"
-                                    {% if current_restaurant_id == restaurant.id %}selected{% endif %}>
-                                    {{ restaurant.name }}
-                                </option>
+                            <option value="{{ restaurant.id }}"
+                                    {% if current_restaurant_id== restaurant.id %}selected{% endif %}>
+                                {{ restaurant.name }}
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Danh mục</label>
                         <select name="category_id" class="form-select">
-                            <option value="all" {% if filter_values.category_id =='all' %}selected{% endif %}>Tất cả</option>
+                            <option value="all" {% if filter_values.category_id=='all' %}selected{% endif %}>Tất cả
+                            </option>
                             {% for category in categories %}
-                                <option value="{{ category.id }}"
-                                    {% if filter_values.category_id|string == category.id|string %}selected{% endif %}>
-                                    {{ category.name }}
-                                </option>
+                            <option value="{{ category.id }}"
+                                    {% if filter_values.category_id|string== category.id|string %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label">Trạng thái</label>
                         <select name="status" class="form-select">
-                            <option value="all" {% if filter_values.status =='all' %}selected{% endif %}>Tất cả</option>
-                            <option value="active" {% if filter_values.status =='active' %}selected{% endif %}>Đang bán</option>
-                            <option value="inactive" {% if filter_values.status =='inactive' %}selected{% endif %}>Tạm ngừng</option>
+                            <option value="all" {% if filter_values.status=='all' %}selected{% endif %}>Tất cả</option>
+                            <option value="active" {% if filter_values.status=='active' %}selected{% endif %}>Đang bán
+                            </option>
+                            <option value="inactive" {% if filter_values.status=='inactive' %}selected{% endif %}>Tạm
+                                ngừng
+                            </option>
                         </select>
                     </div>
                     <div class="col-md-3 mb-3">
@@ -71,7 +75,7 @@
                 </div>
                 <div class="row">
                     <div class="col-12 text-end">
-                        <button type="submit" class="btn btn-primary me-2">
+                        <button type="submit" class="btn btn-menu-filter me-2">
                             <i class="fas fa-filter me-1"></i>Lọc
                         </button>
                         <a href="{{ url_for('owner.owner_menu') }}" class="btn btn-outline-secondary">
@@ -82,68 +86,70 @@
             </form>
         </div>
     </div>
-   <div class="card shadow-sm">
+    <div class="card shadow-sm">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
-                        <tr>
-                            <th style="width: 80px">Ảnh</th>
-                            <th>Tên món</th>
-                            <th>Danh mục</th>
-                            <th>Giá</th>
-                            <th>Trạng thái</th>
-                            <th>Hành động</th>
-                        </tr>
+                    <tr>
+                        <th style="width: 80px">Ảnh</th>
+                        <th>Tên món</th>
+                        <th>Danh mục</th>
+                        <th>Giá</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        {% for item in menu_items.items %}
-                        <tr>
-                            <td>
-                                {% if item.image_url %}
-                                    <img src="{{ item.image_url }}" class="img-thumbnail" width="60" height="60" alt="{{ item.name }}">
-                                {% else %}
-                                    <img src="/static/images/default-food.jpg" class="img-thumbnail" width="60" height="60" alt="Default image">
-                                {% endif %}
-                            </td>
-                            <td>
-                                <strong>{{ item.name }}</strong>
-                                <p class="mb-0 text-muted small">{{ item.description|truncate(50) if item.description }}</p>
-                            </td>
-                            <td>{{ item.category.name }}</td>
-                            <td>{{ "{:,.0f}₫".format(item.price) }}</td>
-                            <td>
-                                {% if item.is_active %}
-                                    <span class="badge bg-success">Đang bán</span>
-                                {% else %}
-                                    <span class="badge bg-warning">Tạm ngừng</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{{ url_for('owner.edit_menu_item', item_id=item.id) }}"
-                                   class="btn btn-sm btn-outline-primary me-1" title="Chỉnh sửa">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <button class="btn btn-sm {% if item.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %} me-1 toggle-status-btn"
-                                        title="{% if item.is_active %}Tạm ngừng{% else %}Kích hoạt{% endif %}"
-                                        data-item-id="{{ item.id }}">
-                                    <i class="fas {% if item.is_active %}fa-pause{% else %}fa-play{% endif %}"></i>
+                    {% for item in menu_items.items %}
+                    <tr>
+                        <td>
+                            {% if item.image_url %}
+                            <img src="{{ item.image_url }}" class="img-thumbnail" width="60" height="60"
+                                 alt="{{ item.name }}">
+                            {% else %}
+                            <img src="/static/images/default-food.jpg" class="img-thumbnail" width="60" height="60"
+                                 alt="Default image">
+                            {% endif %}
+                        </td>
+                        <td>
+                            <strong>{{ item.name }}</strong>
+                            <p class="mb-0 text-muted small">{{ item.description|truncate(50) if item.description }}</p>
+                        </td>
+                        <td>{{ item.category.name }}</td>
+                        <td>{{ "{:,.0f}₫".format(item.price) }}</td>
+                        <td>
+                            {% if item.is_active %}
+                            <span class="badge bg-success">Đang bán</span>
+                            {% else %}
+                            <span class="badge bg-warning">Tạm ngừng</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('owner.edit_menu_item', item_id=item.id) }}"
+                               class="btn btn-sm btn-outline-primary me-1" title="Chỉnh sửa">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button class="btn btn-sm {% if item.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %} me-1 toggle-status-btn"
+                                    title="{% if item.is_active %}Tạm ngừng{% else %}Kích hoạt{% endif %}"
+                                    data-item-id="{{ item.id }}">
+                                <i class="fas {% if item.is_active %}fa-pause{% else %}fa-play{% endif %}"></i>
+                            </button>
+                            <form action="{{ url_for('owner.delete_menu_item', item_id=item.id) }}"
+                                  method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        title="Xóa"
+                                        onclick="return confirm('Bạn có chắc chắn muốn xóa món ăn này?')">
+                                    <i class="fas fa-trash"></i>
                                 </button>
-                                <form action="{{ url_for('owner.delete_menu_item', item_id=item.id) }}"
-                                      method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger"
-                                            title="Xóa"
-                                            onclick="return confirm('Bạn có chắc chắn muốn xóa món ăn này?')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="6" class="text-center py-4">Không có món ăn nào</td>
-                        </tr>
-                        {% endfor %}
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4">Không có món ăn nào</td>
+                    </tr>
+                    {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -153,7 +159,8 @@
                 <ul class="pagination justify-content-center mb-0">
                     {% if menu_items.has_prev %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('owner.owner_menu', page=menu_items.prev_num, **filter_values) }}">
+                        <a class="page-link"
+                           href="{{ url_for('owner.owner_menu', page=menu_items.prev_num, **filter_values) }}">
                             Trước
                         </a>
                     </li>
@@ -163,25 +170,27 @@
                     </li>
                     {% endif %}
 
-                    {% for page_num in menu_items.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                        {% if page_num %}
-                            {% if menu_items.page == page_num %}
-                                <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
-                            {% else %}
-                                <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('owner.owner_menu', page=page_num, **filter_values) }}">
-                                        {{ page_num }}
-                                    </a>
-                                </li>
-                            {% endif %}
-                        {% else %}
-                            <li class="page-item disabled"><span class="page-link">...</span></li>
-                        {% endif %}
+                    {% for page_num in menu_items.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2)
+                    %}
+                    {% if page_num %}
+                    {% if menu_items.page == page_num %}
+                    <li class="page-item active"><a class="page-link" href="#">{{ page_num }}</a></li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ url_for('owner.owner_menu', page=page_num, **filter_values) }}">
+                            {{ page_num }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% else %}
+                    <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
                     {% endfor %}
 
                     {% if menu_items.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="{{ url_for('owner.owner_menu', page=menu_items.next_num, **filter_values) }}">
+                        <a class="page-link"
+                           href="{{ url_for('owner.owner_menu', page=menu_items.next_num, **filter_values) }}">
                             Tiếp
                         </a>
                     </li>
@@ -197,34 +206,58 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Xử lý toggle status bằng AJAX
-    document.querySelectorAll('.toggle-status-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const itemId = this.getAttribute('data-item-id');
+    document.addEventListener('DOMContentLoaded', function() {
+        // Xử lý toggle status bằng AJAX
+        document.querySelectorAll('.toggle-status-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const itemId = this.getAttribute('data-item-id');
 
-            fetch(`/owner/menu/${itemId}/toggle-status`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Reload trang để cập nhật trạng thái
-                    window.location.reload();
-                } else {
-                    alert(data.message || 'Có lỗi xảy ra');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Có lỗi xảy ra khi kết nối đến server');
+                fetch(`/owner/menu/${itemId}/toggle-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reload trang để cập nhật trạng thái
+                        window.location.reload();
+                    } else {
+                        alert(data.message || 'Có lỗi xảy ra');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Có lỗi xảy ra khi kết nối đến server');
+                });
             });
         });
     });
-});
 </script>
+<style>
+    /* Thêm vào phần style cuối file */
+    .btn-menu-filter {
+        background-color: #6c757d; /* Màu xám */
+        color: white;
+        border: none;
+    }
+
+    .btn-menu-filter:hover {
+        background-color: #5a6268; /* Màu xám đậm hơn khi hover */
+        color: white;
+    }
+
+    .btn-menu-reset {
+        border-color: #6c757d;
+        color: #6c757d;
+    }
+
+    .btn-menu-reset:hover {
+        background-color: #f8f9fa;
+        border-color: #6c757d;
+        color: #6c757d;
+    }
+</style>
 {% endblock %}

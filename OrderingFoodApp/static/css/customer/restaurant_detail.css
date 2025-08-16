@@ -242,6 +242,9 @@ body {
   text-decoration: none;
 }
 
+/*thẻ trạng thái đóng/mở nhà hàng*/
+.badge.bg-success-subtle{background:#e7f7ef;}
+.badge.bg-secondary-subtle{background:#eee;}
 
 
 

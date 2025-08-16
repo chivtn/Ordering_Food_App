@@ -1,0 +1,239 @@
+{% extends "layout/base.html" %}
+{% block title %}Phản hồi đánh giá{% endblock %}
+{% block content %}
+<div class="container mt-5">
+
+  <!-- Nút quay lại -->
+  <div class="mb-3">
+    <a href="{{ url_for('owner.owner_reviews') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Quay lại</a>
+
+  </div>
+
+  <div class="row g-4">
+    <!-- LEFT: Vùng phản hồi -->
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-header">Đánh giá từ {{ review.customer_name }} – Đơn #{{ review.order_id }}</div>
+        <div class="card-body">
+          <div class="mb-2">
+            {% for i in range(1,6) %}
+              {% if i <= review.rating %}
+                <i class="fas fa-star text-warning"></i>
+              {% else %}
+                <i class="far fa-star text-warning"></i>
+              {% endif %}
+            {% endfor %}
+            <span class="small text-muted ms-2">{{ review.created_at }}</span>
+          </div>
+
+          <p class="mb-4"><em>{{ review.comment }}</em></p>
+
+          <form method="post" action="{{ url_for('owner.owner_review_respond', review_id=review.id) }}">
+  <div class="mb-3">
+    <label class="form-label">Phản hồi của bạn</label>
+    <textarea id="response_text" name="response_text" class="form-control" rows="4"
+              placeholder="Nhập phản hồi để gửi tới khách hàng">{{ review.response_text }}</textarea>
+  </div>
+  <button id="btnSave" type="submit" class="btn btn-save" disabled>Lưu phản hồi</button>
+  {% if review.response_text %}
+    <button type="button" class="btn btn-outline-danger ms-2" id="btnDeleteResp">Xóa phản hồi</button>
+  {% endif %}
+</form>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Thông tin đơn hàng -->
+    <div class="col-lg-5">
+      <div class="sticky-aside">
+        {% if order_summary %}
+        <div class="card shadow-sm">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Thông tin đơn hàng</span>
+            <span>
+              {% set st = (order_summary['status']|default('')|lower) %}
+              {% if st == 'completed' %}
+                <span class="badge bg-success">Hoàn thành</span>
+              {% elif st == 'cancelled' %}
+                <span class="badge bg-danger">Đã hủy</span>
+              {% elif st == 'confirmed' %}
+                <span class="badge bg-primary">Đã xác nhận</span>
+              {% elif st == 'preparing' %}
+                <span class="badge bg-warning text-dark">Đang chuẩn bị</span>
+              {% elif st == 'delivered' %}
+                <span class="badge bg-info text-dark">Đã giao</span>
+              {% else %}
+                <span class="badge bg-secondary">Đang chờ</span>
+              {% endif %}
+            </span>
+          </div>
+
+          <div class="card-body">
+            <div class="mb-2">
+              <div class="small text-muted">Mã đơn:</div>
+              <div class="fw-semibold">#{{ order_summary['id'] }}</div>
+            </div>
+
+            <div class="mb-2 d-flex gap-4 flex-wrap">
+              <div>
+                <div class="small text-muted">Nhà hàng</div>
+                <div class="fw-semibold">{{ order_summary['restaurant']['name'] }}</div>
+              </div>
+              <div>
+                <div class="small text-muted">Ngày tạo</div>
+                <div class="fw-semibold">{{ order_summary['created_at'] }}</div>
+              </div>
+            </div>
+
+            <hr>
+
+            <div class="mb-2">
+              <div class="small text-muted mb-2">Món đã đặt</div>
+              <ul class="list-group list-group-flush">
+                {% for it in order_summary['items'] %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <div class="me-3">
+                    <div class="fw-semibold">{{ it['name'] }}</div>
+                    <div class="small text-muted">x{{ it['quantity'] }}</div>
+                  </div>
+                  <div class="text-end">
+                    <div class="fw-semibold">{{ "{:,.0f}₫".format(it['price']|float) }}</div>
+                  </div>
+                </li>
+                {% endfor %}
+              </ul>
+            </div>
+
+            <div class="d-flex justify-content-between mt-3">
+              <div class="small text-muted">Tổng tiền</div>
+              <div class="fw-bold">{{ "{:,.0f}₫".format(order_summary['total_amount']|float) }}</div>
+            </div>
+
+            {% if 'promo_code' in order_summary and order_summary['promo_code'] %}
+            <div class="d-flex justify-content-between">
+              <div class="small text-muted">Mã khuyến mãi</div>
+              <div class="fw-semibold">{{ order_summary['promo_code'] }}</div>
+            </div>
+            {% endif %}
+
+            {% if 'payment' in order_summary and order_summary['payment'] %}
+            <div class="mt-2">
+              <div class="small text-muted">Thanh toán</div>
+              <div>Phương thức:
+                <span class="fw-semibold">{{ order_summary['payment']['method'] }}</span>
+              </div>
+              <div>Trạng thái:
+                {% set ps = (order_summary['payment']['status']|default('')|lower) %}
+                {% if ps == 'completed' %}
+                  <span class="badge bg-success">Đã thanh toán</span>
+                {% elif ps == 'failed' %}
+                  <span class="badge bg-danger">Thất bại</span>
+                {% else %}
+                  <span class="badge bg-secondary">Chờ thanh toán</span>
+                {% endif %}
+              </div>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% else %}
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <div class="text-muted">Không có thông tin đơn hàng.</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if review.response_text %}
+<form id="formDeleteResp" method="post"
+      action="{{ url_for('owner.owner_review_delete_response', review_id=review.id) }}"></form>
+<script>
+  document.getElementById('btnDeleteResp')?.addEventListener('click', function () {
+    if (confirm('Bạn chắc chắn muốn xóa phản hồi này?')) {
+      document.getElementById('formDeleteResp').submit();
+    }
+  });
+</script>
+{% endif %}
+
+<style>
+  /* Nút lưu tuỳ chỉnh, tránh .btn-primary */
+  .btn-save{
+    background-color:#0d6efd;
+    color:#fff;
+    border-radius:12px;
+  }
+  .btn-save:hover{
+    background-color:#0b5ed7;
+    color:#fff;
+  }
+  .btn-outline-danger{
+    border-radius:12px;
+    font-weight:600;
+    transition:all .3s ease;
+  }
+  /* Cột phải dính khi cuộn */
+  .sticky-aside{
+    position: sticky;
+    top: 1rem; /* tránh đè header */
+  }
+
+  /* Mobile: 2 cột sẽ xếp chồng */
+  @media (max-width: 991.98px){
+    .sticky-aside{ position: static; }
+  }
+
+  /* Nút lưu tuỳ chỉnh, tránh .btn-primary */
+.btn-save{
+  background-color:#0d6efd;
+  color:#fff;
+  border-radius:12px;
+  transition: background-color .2s ease, opacity .2s ease;
+}
+.btn-save:hover{
+  background-color:#0b5ed7;
+  color:#fff;
+}
+/* Khi disabled: xám và không hover */
+.btn-save:disabled{
+  background-color:#adb5bd; /* xám */
+  color:#fff;
+  cursor:not-allowed;
+  opacity:.9;
+}
+
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const ta  = document.getElementById('response_text');
+    const btn = document.getElementById('btnSave');
+    if (!ta || !btn) return;
+
+    // Giá trị ban đầu của <textarea> (nội dung trong markup)
+    const initial = (ta.defaultValue || '').trim();
+
+    const updateState = () => {
+      const changed = ta.value.trim() !== initial;
+      btn.disabled = !changed;
+    };
+
+    // Lắng nghe mọi thay đổi
+    ta.addEventListener('input',  updateState);
+    ta.addEventListener('change', updateState);
+
+    // Khởi tạo trạng thái đúng ngay khi load
+    updateState();
+
+    // Tránh double-click khi submit
+    ta.form?.addEventListener('submit', () => { btn.disabled = true; });
+  });
+</script>
+
+{% endblock %}
