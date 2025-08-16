@@ -153,5 +153,3 @@ class RestaurantDAO:
             db.session.rollback()
             raise e
 
-
-

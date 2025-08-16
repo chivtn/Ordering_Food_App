@@ -4,7 +4,9 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from dotenv import load_dotenv
 import os
+from flask_mail import Mail
 
+mail = Mail()
 # Load biến môi trường từ .env
 load_dotenv()
 
@@ -22,8 +24,9 @@ def init_app():
 
     # ====== CONFIGURATION ======
     app.config['SECRET_KEY'] = 'sieu-bi-mat-123'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:askme@localhost/db_orderingfood?charset=utf8mb4'
-    #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:26032004@localhost/db_orderingfood?charset=utf8mb4'
+    # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:askme@localhost/db_orderingfood?charset=utf8mb4'
+    # app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:26032004@localhost/db_orderingfood?charset=utf8mb4'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:26032004@localhost/db_ord?charset=utf8mb4'
     #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Votanhuy%40123@localhost:3306/db_orderingfood?charset=utf8mb4'
 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -63,5 +66,8 @@ def init_app():
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(home_bp)
     app.register_blueprint(profile_bp)
+
+    # Khởi tạo Flask-Mail
+    mail.init_app(app)
 
     return app

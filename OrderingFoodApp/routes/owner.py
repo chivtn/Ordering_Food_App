@@ -147,7 +147,7 @@ def owner_restaurants():
     return render_template('owner/restaurants.html', restaurants=formatted_restaurants)
 
 
-# owner.py (phần sửa đổi)
+
 
 ### RESTAURANTS
 @owner_bp.route('/restaurants/add', methods=['GET', 'POST'])
@@ -661,7 +661,6 @@ def update_order_status(order_id):
         return jsonify({'success': True, 'message': 'Cập nhật trạng thái thành công'})
     else:
         return jsonify({'success': False, 'message': 'Không thể chuyển sang trạng thái này'})
-
 
 ##33##doanh thu####
 
