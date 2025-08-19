@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Đơn hàng mới #{{ order.id }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 6px; }
+        th { background: #f5f5f5; }
+    </style>
+</head>
+<body>
+<h2>🍽️ Đơn hàng mới #{{ order.id }} từ {{ restaurant.name }}</h2>
+<p>Khách hàng: {{ order.customer.name }} ({{ order.customer.email }})</p>
+<p>Thời gian đặt: {{ order.created_at.strftime('%H:%M %d/%m/%Y') if order.created_at else '' }}</p>
+
+<h3>Chi tiết món ăn</h3>
+<table>
+    <thead>
+    <tr>
+        <th>Món</th>
+        <th>SL</th>
+        <th>Đơn giá</th>
+        <th>Thành tiền</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for it in order_items %}
+    <tr>
+        <td>{{ it.menu_item.name }}</td>
+        <td>{{ it.quantity }}</td>
+        <td>{{ "{:,.0f}".format(it.price) }}đ</td>
+        <td>{{ "{:,.0f}".format(it.price * it.quantity) }}đ</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot>
+    <tr>
+        <td colspan="3"><strong>Tổng cộng</strong></td>
+        <td><strong>{{ "{:,.0f}".format(order.total_amount) }}đ</strong></td>
+    </tr>
+    </tfoot>
+</table>
+
+{% if order.note %}
+<p><strong>Ghi chú:</strong> {{ order.note }}</p>
+{% endif %}
+
+<p>👉 Vui lòng đăng nhập hệ thống để xác nhận và xử lý đơn hàng.</p>
+</body>
+</html>

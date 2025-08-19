@@ -2,6 +2,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import func
+
+from OrderingFoodApp.dao.order_owner import OrderDAO
 from OrderingFoodApp.models import *
 from OrderingFoodApp.dao import customer_service as dao
 from datetime import datetime
@@ -446,6 +448,11 @@ def place_order():
             is_read=False
         ))
         db.session.commit()
+        # ✅ Gửi email cho CHỦ NHÀ HÀNG
+        try:
+            OrderDAO.send_new_order_email(new_order)
+        except Exception as e:
+            current_app.logger.error(f"Lỗi gửi email đơn mới: {e}")
 
         return jsonify({
             'success': True,

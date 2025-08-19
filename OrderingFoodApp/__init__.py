@@ -3,10 +3,10 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from dotenv import load_dotenv
+####
+from flask_mail import Mail  # Thêm import Flask-Mail
 import os
-from flask_mail import Mail
-
-mail = Mail()
+####
 # Load biến môi trường từ .env
 load_dotenv()
 
@@ -14,6 +14,8 @@ load_dotenv()
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
+####
+mail = Mail()  # Khởi tạo Flask-Mail
 
 
 def init_app():
@@ -21,6 +23,8 @@ def init_app():
     Khởi tạo Flask App, tích hợp các extension
     """
     app = Flask(__name__)
+
+
 
     # ====== CONFIGURATION ======
     app.config['SECRET_KEY'] = 'sieu-bi-mat-123'
@@ -30,6 +34,16 @@ def init_app():
     #app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:Votanhuy%40123@localhost:3306/db_orderingfood?charset=utf8mb4'
 
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    # ====== CẤU HÌNH EMAIL (GMAIL SMTP) ======
+
+    app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+    app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT", 587))
+    app.config['MAIL_USE_TLS'] = os.getenv("MAIL_USE_TLS", "True") == "True"
+    app.config['MAIL_USE_SSL'] = os.getenv("MAIL_USE_SSL", "False") == "True"
+    app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
+    app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
+    app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER")
 
     # ====== INITIALIZE EXTENSIONS ======
     db.init_app(app)
