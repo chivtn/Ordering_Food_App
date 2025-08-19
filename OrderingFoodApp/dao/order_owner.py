@@ -1,9 +1,7 @@
 # order_owner.py
 from flask_mail import Message
 from threading import Thread
-
 from flask import current_app, render_template
-
 from OrderingFoodApp import mail
 from OrderingFoodApp.models import Order, OrderItem, User, Restaurant, db, Notification, NotificationType, OrderStatus, \
     RestaurantApprovalStatus, MenuItem
@@ -16,7 +14,6 @@ def send_async_email(app, msg):
     """Gửi email bất đồng bộ"""
     with app.app_context():
         mail.send(msg)
-
 
 def send_order_email(to, subject, template_name, **template_args):
     """Gửi email sử dụng template"""

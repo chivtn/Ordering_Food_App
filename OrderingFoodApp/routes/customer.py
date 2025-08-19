@@ -448,7 +448,7 @@ def place_order():
             is_read=False
         ))
         db.session.commit()
-        # ✅ Gửi email cho CHỦ NHÀ HÀNG
+        #Gửi email cho CHỦ NHÀ HÀNG
         try:
             OrderDAO.send_new_order_email(new_order)
         except Exception as e:

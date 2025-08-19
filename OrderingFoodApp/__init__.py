@@ -36,7 +36,6 @@ def init_app():
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # ====== CẤU HÌNH EMAIL (GMAIL SMTP) ======
-
     app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
     app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT", 587))
     app.config['MAIL_USE_TLS'] = os.getenv("MAIL_USE_TLS", "True") == "True"
