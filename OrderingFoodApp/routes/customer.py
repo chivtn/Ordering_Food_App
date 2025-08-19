@@ -508,6 +508,12 @@ def current_orders():
 @login_required
 def cancel_order(order_id):
     try:
+        # Get cancellation reason from request
+        cancellation_reason = None
+        if request.is_json:
+            data = request.get_json()
+            cancellation_reason = data.get('reason')
+
         order = Order.query.filter_by(
             id=order_id,
             customer_id=current_user.id,
@@ -515,6 +521,7 @@ def cancel_order(order_id):
         ).first_or_404()
 
         order.status = OrderStatus.CANCELLED
+        order.cancellation_reason = cancellation_reason  # Save the reason
         db.session.commit()
 
         # Tạo thông báo
