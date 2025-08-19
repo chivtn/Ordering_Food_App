@@ -1,0 +1,59 @@
+{% extends "layout/base.html" %}
+{% block title %}Hoàn tất đặt hàng{% endblock %}
+{% block content %}
+<div class="container mt-5 mb-5">
+  <div class="card shadow-sm">
+    <div class="card-body p-4">
+
+      {% if paid %}
+        <div class="alert alert-success d-flex align-items-center" role="alert">
+          <i class="fas fa-check-circle me-2"></i>
+          <div>
+            <strong>Đặt hàng thành công!</strong>
+            Thanh toán đã hoàn tất. Đơn #{{ order.id }} đang chờ nhà hàng xác nhận.
+          </div>
+        </div>
+      {% else %}
+        {% if payment and payment.status.value == 'failed' %}
+          <div class="alert alert-warning d-flex align-items-center" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <div>
+              Thanh toán không thành công. Bạn có thể thử lại hoặc chọn phương thức khác.
+            </div>
+          </div>
+        {% else %}
+          <div class="alert alert-info d-flex align-items-center" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            <div>
+              Đã tạo đơn #{{ order.id }}. Trạng thái thanh toán: 
+              <span class="badge bg-secondary">{{ payment.status.value if payment else 'pending' }}</span>
+            </div>
+          </div>
+        {% endif %}
+      {% endif %}
+
+      <div class="mb-4">
+        <p class="mb-1"><strong>Mã đơn:</strong> #{{ order.id }}</p>
+        <p class="mb-1"><strong>Thời gian:</strong> {{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</p>
+        <p class="mb-1"><strong>Tổng tiền:</strong> {{ "{:,.0f} đ".format(order.total_amount) }}</p>
+        {% if payment %}
+          <p class="mb-1"><strong>Phương thức:</strong> {{ payment.method.value|replace('_',' ')|title }}</p>
+          <p class="mb-0"><strong>Thanh toán:</strong> {{ payment.status.value|capitalize }}</p>
+        {% endif %}
+      </div>
+
+      <div class="d-flex gap-2">
+        <a class="btn btn-success" href="{{ url_for('customer.current_orders') }}">
+          <i class="fas fa-clipboard-list me-2"></i>Xem đơn hàng hiện tại
+        </a>
+        <a class="btn btn-outline-success" href="{{ url_for('customer.restaurants_list') }}">
+          <i class="fas fa-shopping-basket me-2"></i>Tiếp tục mua sắm
+        </a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}
