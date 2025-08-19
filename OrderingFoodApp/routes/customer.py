@@ -2,6 +2,8 @@
 from flask import Blueprint, flash
 from flask_login import login_required, current_user
 from sqlalchemy import func
+
+from OrderingFoodApp.dao.order_owner import OrderDAO
 from OrderingFoodApp.models import *
 from OrderingFoodApp.dao import customer_service as dao
 from datetime import datetime
@@ -351,6 +353,7 @@ def checkout():
                            total_price=total_price)
 
 
+
 @customer_bp.route('/place_order', methods=['POST'])
 @login_required
 def place_order():
@@ -456,6 +459,27 @@ def place_order():
 
         else:
             return jsonify({'success': False, 'message': 'Phương thức thanh toán không hợp lệ.'}), 400
+        # Thông báo
+        db.session.add(Notification(
+            user_id=current_user.id,
+            order_id=new_order.id,
+            type=NotificationType.ORDER_STATUS,
+            message=f"Đơn hàng #{new_order.id} đã được đặt thành công.",
+            is_read=False
+        ))
+        db.session.commit()
+        #Gửi email cho CHỦ NHÀ HÀNG
+        try:
+            OrderDAO.send_new_order_email(new_order)
+        except Exception as e:
+            current_app.logger.error(f"Lỗi gửi email đơn mới: {e}")
+
+        return jsonify({
+            'success': True,
+            'order_id': new_order.id,
+            'message': 'Đặt hàng thành công!',
+            'redirect_url': url_for('customer.current_orders')
+        })
 
     except Exception as e:
         db.session.rollback()
@@ -469,7 +493,7 @@ def current_orders():
     # Lấy các đơn hàng chưa hoàn thành của khách hàng hiện tại
     orders = Order.query.filter(
         Order.customer_id == current_user.id,
-        Order.status.in_([OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING])
+        Order.status.in_([OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING,  OrderStatus.DELIVERED])
     ).options(
         db.joinedload(Order.restaurant),
         db.joinedload(Order.order_items).joinedload(OrderItem.menu_item)
@@ -511,6 +535,12 @@ def current_orders():
 @login_required
 def cancel_order(order_id):
     try:
+        # Get cancellation reason from request
+        cancellation_reason = None
+        if request.is_json:
+            data = request.get_json()
+            cancellation_reason = data.get('reason')
+
         order = Order.query.filter_by(
             id=order_id,
             customer_id=current_user.id,
@@ -518,6 +548,7 @@ def cancel_order(order_id):
         ).first_or_404()
 
         order.status = OrderStatus.CANCELLED
+        order.cancellation_reason = cancellation_reason  # Save the reason
         db.session.commit()
 
         # Tạo thông báo

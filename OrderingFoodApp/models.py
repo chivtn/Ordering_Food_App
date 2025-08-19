@@ -139,28 +139,29 @@ class Restaurant(db.Model):
     created_at = Column(DateTime, default=datetime.utcnow)
     approval_status = Column(Enum(RestaurantApprovalStatus), nullable=False, default=RestaurantApprovalStatus.APPROVED)
     rejection_reason = Column(Text, nullable=True)  # Lưu lý do nếu bị từ chối
-
+    email_notifications = Column(Boolean, default=True)
+    sms_notifications = Column(Boolean, default=True)
 
     menu_items = relationship('MenuItem', backref='restaurant', lazy=True)
     orders = relationship('Order', backref='restaurant', lazy=True)
     reviews = relationship('Review', backref='restaurant', lazy=True)
 
-
-# ========== BRANCH ==========
-class Branch(db.Model):
-    __tablename__ = 'branches'
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    restaurant_id = Column(Integer, ForeignKey('restaurants.id'), nullable=False)
-    name = Column(String(150), nullable=False)
-    address = Column(String(255), nullable=False)
-    phone = Column(String(50))
-    opening_time = Column(Time, nullable=False, default=time(8, 0))  # Mặc định 08:00
-    closing_time = Column(Time, nullable=False, default=time(22, 0))  # Mặc định 22:00 # Đổi từ String sang Time
-    status = Column(String(20), default='active')
-    image_url = Column(String(255))
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    restaurant = relationship('Restaurant', backref=backref('branches', lazy=True))
+#
+# # ========== BRANCH ==========
+# class Branch(db.Model):
+#     __tablename__ = 'branches'
+#     id = Column(Integer, primary_key=True, autoincrement=True)
+#     restaurant_id = Column(Integer, ForeignKey('restaurants.id'), nullable=False)
+#     name = Column(String(150), nullable=False)
+#     address = Column(String(255), nullable=False)
+#     phone = Column(String(50))
+#     opening_time = Column(Time, nullable=False, default=time(8, 0))  # Mặc định 08:00
+#     closing_time = Column(Time, nullable=False, default=time(22, 0))  # Mặc định 22:00 # Đổi từ String sang Time
+#     status = Column(String(20), default='active')
+#     image_url = Column(String(255))
+#     created_at = Column(DateTime, default=datetime.utcnow)
+#
+#     restaurant = relationship('Restaurant', backref=backref('branches', lazy=True))
 
 
 # ========== MENU ==========
@@ -219,6 +220,7 @@ class Order(db.Model):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     rj_reason = Column(Text, nullable=True)
+    cancellation_reason = Column(Text, nullable=True)
 
     order_items = relationship('OrderItem', backref='order', lazy=True)
     payment = relationship('Payment', backref='order', uselist=False)

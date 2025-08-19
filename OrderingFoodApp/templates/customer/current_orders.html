@@ -39,6 +39,41 @@
                  aria-labelledby="heading{{ order.id }}"
                  data-bs-parent="#ordersAccordion">
                 <div class="card-body">
+                    <!-- TIẾN TRÌNH ĐƠN HÀNG -->
+                    <div class="order-timeline mb-4">
+                        <div class="timeline-steps">
+                            <div class="timeline-step {{ 'active' if order.status in [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.DELIVERED, OrderStatus.COMPLETED] else '' }}">
+                                <div class="timeline-icon">
+                                    <i class="fas fa-utensils"></i>
+                                </div>
+                                <div class="timeline-label">Đặt món</div>
+                            </div>
+                            <div class="timeline-step {{ 'active' if order.status in [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.DELIVERED, OrderStatus.COMPLETED] else '' }}">
+                                <div class="timeline-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="timeline-label">Nhà hàng xác nhận</div>
+                            </div>
+                            <div class="timeline-step {{ 'active' if order.status in [OrderStatus.PREPARING, OrderStatus.DELIVERED, OrderStatus.COMPLETED] else '' }}">
+                                <div class="timeline-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="timeline-label">Đang chuẩn bị</div>
+                            </div>
+                            <div class="timeline-step {{ 'active' if order.status in [OrderStatus.DELIVERED, OrderStatus.COMPLETED] else '' }}">
+                                <div class="timeline-icon">
+                                    <i class="fas fa-motorcycle"></i>
+                                </div>
+                                <div class="timeline-label">Đang giao</div>
+                            </div>
+                            <div class="timeline-step {{ 'active' if order.status == OrderStatus.COMPLETED else '' }}">
+                                <div class="timeline-icon">
+                                    <i class="fas fa-check-double"></i>
+                                </div>
+                                <div class="timeline-label">Hoàn thành</div>
+                            </div>
+                        </div>
+                    </div>
                     <h5>Chi tiết đơn hàng:</h5>
                     <div class="table-responsive">
                         <table class="table table-hover">
@@ -124,6 +159,59 @@
         </a>
     </div>
     {% endif %}
+
+    <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cancelModalLabel">Lý do hủy đơn hàng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="cancelReasonForm">
+                        <input type="hidden" id="cancelOrderId">
+                        <div class="mb-3">
+                            <label class="form-label">Chọn lý do hủy đơn:</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="cancelReason" id="reason1"
+                                       value="Thay đổi ý định">
+                                <label class="form-check-label" for="reason1">Thay đổi ý định</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="cancelReason" id="reason2"
+                                       value="Đặt nhầm món">
+                                <label class="form-check-label" for="reason2">Đặt nhầm món</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="cancelReason" id="reason3"
+                                       value="Thời gian giao hàng quá lâu">
+                                <label class="form-check-label" for="reason3">Thời gian giao hàng quá lâu</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="cancelReason" id="reason4"
+                                       value="Tìm thấy nhà hàng khác">
+                                <label class="form-check-label" for="reason4">Tìm thấy nhà hàng khác</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="cancelReason" id="reasonOther"
+                                       value="other">
+                                <label class="form-check-label" for="reasonOther">Lý do khác</label>
+                            </div>
+                        </div>
+                        <div class="mb-3" id="customReasonContainer" style="display: none;">
+                            <label for="customReason" class="form-label">Nhập lý do khác:</label>
+                            <textarea class="form-control" id="customReason" rows="3"
+                                      placeholder="Vui lòng nhập lý do hủy đơn hàng của bạn"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-danger" id="confirmCancel">Xác nhận hủy</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -134,32 +222,149 @@
             new bootstrap.Collapse(firstOrder, { toggle: true });
         }
 
-        // Xử lý hủy đơn hàng
-        document.querySelectorAll('.btn-cancel-order').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const orderId = this.dataset.orderId;
-                if (confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) {
-                    fetch(`/customer/cancel_order/${orderId}`, {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            location.reload();
-                        } else {
-                            alert('Có lỗi xảy ra: ' + data.message);
-                        }
-                    });
+        // Xử lý hiển thị ô nhập lý do tùy chỉnh
+        document.querySelectorAll('input[name="cancelReason"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const customReasonContainer = document.getElementById('customReasonContainer');
+                if (this.value === 'other') {
+                    customReasonContainer.style.display = 'block';
+                } else {
+                    customReasonContainer.style.display = 'none';
                 }
+            });
+        });
+
+        // Xử lý mở modal khi click nút hủy
+        document.querySelectorAll('.btn-cancel-order').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault(); // Ngăn hành vi mặc định
+                const orderId = this.dataset.orderId;
+                document.getElementById('cancelOrderId').value = orderId;
+
+                // Reset form
+                document.getElementById('cancelReasonForm').reset();
+                document.getElementById('customReasonContainer').style.display = 'none';
+
+                // Hiển thị modal
+                const cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
+                cancelModal.show();
+            });
+        });
+
+        // Xử lý xác nhận hủy đơn hàng
+        document.getElementById('confirmCancel').addEventListener('click', function() {
+            const orderId = document.getElementById('cancelOrderId').value;
+            const selectedReason = document.querySelector('input[name="cancelReason"]:checked');
+
+            if (!selectedReason) {
+                alert('Vui lòng chọn lý do hủy đơn hàng');
+                return;
+            }
+
+            let cancelReason = selectedReason.value;
+            if (cancelReason === 'other') {
+                cancelReason = document.getElementById('customReason').value.trim();
+                if (!cancelReason) {
+                    alert('Vui lòng nhập lý do hủy đơn hàng');
+                    return;
+                }
+            }
+
+            // Gửi yêu cầu hủy đơn hàng
+            fetch(`/customer/cancel_order/${orderId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ reason: cancelReason })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Đóng modal và reload trang
+                    const cancelModal = bootstrap.Modal.getInstance(document.getElementById('cancelModal'));
+                    cancelModal.hide();
+                    location.reload();
+                } else {
+                    alert('Có lỗi xảy ra: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Có lỗi xảy ra: ' + error);
             });
         });
     });
 </script>
 
 <style>
+    .order-timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+
+    .timeline-steps {
+        display: flex;
+        justify-content: space-between;
+        position: relative;
+    }
+
+    .timeline-step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        opacity: 0.5;
+        transition: opacity 0.3s ease;
+    }
+
+    .timeline-step.active {
+        opacity: 1;
+    }
+
+    .timeline-step:not(:last-child):after {
+        content: '';
+        position: absolute;
+        top: 30px;
+        left: 50%;
+        width: 100%;
+        height: 2px;
+        background-color: #dee2e6;
+        z-index: 1;
+    }
+
+    .timeline-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: #f8f9fa;
+        border: 2px solid #dee2e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        position: relative;
+        z-index: 2;
+        transition: all 0.3s ease;
+    }
+
+    .timeline-step.active .timeline-icon {
+        background: #0d6efd;
+        border-color: #0d6efd;
+        color: white;
+    }
+
+    .timeline-step.completed .timeline-icon {
+        background: #198754;
+        border-color: #198754;
+        color: white;
+    }
+
+    .timeline-label {
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    /* Các style hiện tại khác giữ nguyên */
     .card-header {
         cursor: pointer;
         transition: background-color 0.2s;
