@@ -466,7 +466,7 @@ def current_orders():
     # Lấy các đơn hàng chưa hoàn thành của khách hàng hiện tại
     orders = Order.query.filter(
         Order.customer_id == current_user.id,
-        Order.status.in_([OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING])
+        Order.status.in_([OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING,  OrderStatus.DELIVERED])
     ).options(
         db.joinedload(Order.restaurant),
         db.joinedload(Order.order_items).joinedload(OrderItem.menu_item)
