@@ -17,12 +17,21 @@ def app():
     app: Flask = init_app()
     app.config.update({
         'TESTING': True,
-        # Chỉ điểm tới database test (tạo trước bằng Workbench)
-        'SQLALCHEMY_DATABASE_URI': 'mysql+pymysql://root:askme@127.0.0.1:3306/test_db',
-        # 'SQLALCHEMY_DATABASE_URI': 'mysql+pymysql://root:26032004@localhost/test_db?charset=utf8mb4',
-        # 'SQLALCHEMY_DATABASE_URI' = 'mysql+pymysql://username:password@localhost:3306/test_db',
-        'WTF_CSRF_ENABLED': False,
-        'SECRET_KEY': 'test-secret',
+    'SQLALCHEMY_DATABASE_URI': 'mysql+pymysql://root:askme@127.0.0.1:3306/test_db',
+    'WTF_CSRF_ENABLED': False,
+    'SECRET_KEY': 'test-secret',
+
+    # --- Thêm các key cho MoMo & VNPay (dùng giá trị mock khi test) ---
+    'MOMO_PARTNER_CODE': 'MOMOTEST',
+    'MOMO_ACCESS_KEY':   'TESTACCESS',
+    'MOMO_SECRET_KEY':   'TESTSECRET',
+    'MOMO_ENDPOINT':     'https://example-momo/create',   # placeholder, test không gọi thật
+    'MOMO_QUERY_ENDPOINT': 'https://example-momo/query',
+
+    'VNP_TMN_CODE':    'TMNCODE',
+    'VNP_HASH_SECRET': 'VNPSECRET',
+    'VNP_API_URL':     'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html',
+    'VNP_RETURN_URL':  'http://localhost/payment/vnpay_return',
     })
 
     # Tạo toàn bộ bảng

@@ -1,11 +1,13 @@
 # customer.py
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, current_app
+from flask import Blueprint, flash
 from flask_login import login_required, current_user
 from sqlalchemy import func
+
+from OrderingFoodApp.dao.order_owner import OrderDAO
 from OrderingFoodApp.models import *
 from OrderingFoodApp.dao import customer_service as dao
 from datetime import datetime
-from OrderingFoodApp.dao.cart_service import get_cart_items, group_items_by_restaurant
+from OrderingFoodApp.dao.cart_service import get_cart_items
 
 customer_bp = Blueprint('customer', __name__, url_prefix='/customer')
 
@@ -199,7 +201,7 @@ def view_menu_item(menu_item_id):
 
 # Quản lý giỏ hàng
 from OrderingFoodApp.dao import cart_service as cart_dao
-from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
+from flask import render_template, request, redirect, url_for, session, jsonify
 from OrderingFoodApp.models import MenuItem
 
 @customer_bp.route('/cart', methods=['GET', 'POST'])
@@ -359,40 +361,32 @@ def place_order():
         data = request.get_json(silent=True) or {}
         payment_method_value = data.get('payment_method', 'cash_on_delivery')
         applied_promo        = data.get('applied_promo')  # {'code': '...', 'final_amount': ...}
-        payment_method = PaymentMethod(payment_method_value)
 
         checkout_data = session.get('checkout_data') or {}
         if not checkout_data:
             return jsonify({'success': False, 'message': 'Không có dữ liệu thanh toán.'}), 400
 
-        # ƯU TIÊN items (flat). Fallback: flatten từ grouped_items nếu còn session cũ
         items = checkout_data.get('items') or []
-        if not items and checkout_data.get('grouped_items'):
-            items = []
-            for pack in checkout_data['grouped_items'].values():
-                sub = pack.get('items') if isinstance(pack, dict) else pack
-                if sub: items.extend(sub)
+        if not items:
+            return jsonify({'success': False, 'message': 'Giỏ hàng trống.'}), 400
 
-        total_amount = float(checkout_data.get('total_price', 0))
-
+        # Gom item theo restaurant
         unique_restaurant_ids = set()
-        all_items_flat = []   # [(MenuItem, qty)]
+        all_items_flat = []
         for it in items:
             mi = MenuItem.query.get(int(it['id']))
             if not mi:
-                return jsonify({'success': False, 'message': 'Món ăn không còn tồn tại.'}), 400
+                return jsonify({'success': False, 'message': 'Món ăn không tồn tại.'}), 400
             unique_restaurant_ids.add(mi.restaurant_id)
-            qty = int(it.get('quantity', 1))
-            all_items_flat.append((mi, qty))
+            all_items_flat.append((mi, int(it['quantity'])))
 
-        if not all_items_flat:
-            return jsonify({'success': False, 'message': 'Giỏ hàng trống.'}), 400
         if len(unique_restaurant_ids) != 1:
-            return jsonify({'success': False, 'message': 'Chỉ được đặt món từ một nhà hàng trong một đơn.'}), 400
+            return jsonify({'success': False, 'message': 'Chỉ được đặt từ 1 nhà hàng trong 1 đơn.'}), 400
 
         restaurant_id = unique_restaurant_ids.pop()
+        total_amount = float(checkout_data.get('total_price', 0))
 
-        # Áp mã giảm giá nếu có
+        # Áp dụng promo nếu có
         promo_id = None
         if applied_promo and applied_promo.get('code'):
             promo = PromoCode.query.filter_by(code=applied_promo['code']).first()
@@ -400,7 +394,7 @@ def place_order():
                 promo_id = promo.id
                 total_amount = float(applied_promo.get('final_amount', total_amount))
 
-        # Tạo Order + Items + Payment
+        # --- Tạo Order + Payment ---
         new_order = Order(
             customer_id=current_user.id,
             restaurant_id=restaurant_id,
@@ -419,24 +413,52 @@ def place_order():
                 price=mi.price
             ))
 
-        db.session.add(Payment(
+        payment_method = PaymentMethod(payment_method_value)
+        new_payment = Payment(
             order_id=new_order.id,
             amount=total_amount,
             method=payment_method,
             status=PaymentStatus.PENDING
-        ))
+        )
+        db.session.add(new_payment)
+        db.session.commit()
 
-        # Xoá các món đã đặt khỏi giỏ (session) và commit
+        # Xoá giỏ hàng session
         session_cart = session.get('cart', {})
         for mi, _ in all_items_flat:
             session_cart.pop(str(mi.id), None)
         session['cart'] = session_cart
         session.pop('checkout_data', None)
         db.session.commit()
-
-        # Đồng bộ giỏ DB theo session
         cart_dao._sync_db_from_session()
 
+        # --- Phân nhánh ---
+        if payment_method == PaymentMethod.CASH_ON_DELIVERY:
+            # Trả về JSON giữ nguyên flow cũ
+            # customer.py (trong place_order, nhánh CASH_ON_DELIVERY)
+            return jsonify({
+                'success': True,
+                'order_id': new_order.id,
+                'message': 'Đặt hàng thành công!',
+                'redirect_url': url_for('customer.order_complete', order_id=new_order.id)
+            })
+
+        elif payment_method == PaymentMethod.MOMO:
+            # Redirect sang route xử lý MoMo
+            return jsonify({
+                'success': True,
+                'redirect_url': url_for('customer.momo_payment_atm', order_id=new_order.id)
+            })
+
+        elif payment_method == PaymentMethod.VNPAY:
+            # Redirect sang route xử lý VNPay
+            return jsonify({
+                'success': True,
+                'redirect_url': url_for('customer.vnpay_payment', order_id=new_order.id)
+            })
+
+        else:
+            return jsonify({'success': False, 'message': 'Phương thức thanh toán không hợp lệ.'}), 400
         # Thông báo
         db.session.add(Notification(
             user_id=current_user.id,
@@ -446,6 +468,11 @@ def place_order():
             is_read=False
         ))
         db.session.commit()
+        #Gửi email cho CHỦ NHÀ HÀNG
+        try:
+            OrderDAO.send_new_order_email(new_order)
+        except Exception as e:
+            current_app.logger.error(f"Lỗi gửi email đơn mới: {e}")
 
         return jsonify({
             'success': True,
@@ -456,7 +483,7 @@ def place_order():
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': f'Có lỗi xảy ra: {e}'}), 500
+        return jsonify({'success': False, 'message': f'Lỗi: {e}'}), 500
 
 
 
@@ -616,3 +643,20 @@ def apply_promo():
         'discount_amount': discount_amount,
         'final_amount': final_amount
     })
+# customer.py
+@customer_bp.route('/order/complete/<int:order_id>')
+@login_required
+def order_complete(order_id):
+    order = Order.query.filter_by(id=order_id, customer_id=current_user.id).first_or_404()
+    payment = Payment.query.filter_by(order_id=order.id).first()
+
+    paid = bool(payment and payment.status == PaymentStatus.COMPLETED)
+    return render_template(
+        'customer/order_complete.html',
+        order=order,
+        payment=payment,
+        paid=paid,
+        PaymentStatus=PaymentStatus,
+        OrderStatus=OrderStatus
+    )
+

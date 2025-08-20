@@ -1,12 +1,37 @@
 # order_owner.py
+from flask_mail import Message
+from threading import Thread
+from flask import current_app, render_template
+from OrderingFoodApp import mail
 from OrderingFoodApp.models import Order, OrderItem, User, Restaurant, db, Notification, NotificationType, OrderStatus, \
     RestaurantApprovalStatus, MenuItem
 from sqlalchemy import func, and_, or_
 from datetime import datetime, timedelta
 from sqlalchemy.exc import SQLAlchemyError
 
-from OrderingFoodApp.services.notification_service import NotificationService
 
+def send_async_email(app, msg):
+    """Gửi email bất đồng bộ"""
+    with app.app_context():
+        mail.send(msg)
+
+def send_order_email(to, subject, template_name, **template_args):
+    """Gửi email sử dụng template"""
+    try:
+        template_args.setdefault('sender_name', current_app.config['MAIL_DEFAULT_SENDER'][0])
+        html_content = render_template(f'emails/{template_name}', **template_args)
+
+        msg = Message(
+            subject,
+            recipients=[to],
+            html=html_content,
+            sender=current_app.config['MAIL_DEFAULT_SENDER']
+        )
+        Thread(target=send_async_email, args=(current_app._get_current_object(), msg)).start()
+        return True
+    except Exception as e:
+        current_app.logger.error(f"Failed to send email to {to}: {str(e)}")
+        return False
 
 
 class OrderDAO:
@@ -163,6 +188,27 @@ class OrderDAO:
             })
 
         return order_details
+
+    @staticmethod
+    def send_new_order_email(order):
+        """Gửi email thông báo đơn hàng mới cho chủ nhà hàng"""
+        restaurant = Restaurant.query.get(order.restaurant_id)
+        if not restaurant:
+            return
+
+        owner = User.query.get(restaurant.owner_id)
+        if not owner or not owner.email:
+            return
+
+        order_items = OrderItem.query.filter_by(order_id=order.id).all()
+        send_order_email(
+            to=owner.email,
+            subject=f"Đơn hàng mới #{order.id} từ {restaurant.name}",
+            template_name="new_order_owner.html",
+            order=order,
+            restaurant=restaurant,
+            order_items=order_items
+        )
 
     ###########3#####Doanh thu###
     @staticmethod
