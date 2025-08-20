@@ -2,213 +2,231 @@
 {% block title %}Đơn hàng hiện tại{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h1 class="mb-4 text-success"><i class="fas fa-clipboard-list me-2"></i>Đơn hàng của bạn</h1>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0 text-gradient-primary">
+            <i class="fas fa-clipboard-list me-2"></i>Đơn hàng của bạn
+        </h1>
+        <div class="d-flex">
+            <a href="{{ url_for('customer.orders_history') }}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-history me-1"></i>Lịch sử đơn hàng
+            </a>
+            <a href="{{ url_for('customer.restaurants_list') }}" class="btn btn-success">
+                <i class="fas fa-plus me-1"></i>Đặt món mới
+            </a>
+        </div>
+    </div>
 
     {% if orders %}
-    <div class="accordion" id="ordersAccordion">
+    <div class="row">
         {% for order in orders %}
-        <div class="card mb-3">
-            <div class="card-header bg-light" id="heading{{ order.id }}">
-                <div class="d-flex justify-content-between align-items-center">
-                    <button class="btn btn-link text-decoration-none w-100 text-start"
-                            type="button"
-                            data-bs-toggle="collapse"
-                            data-bs-target="#collapse{{ order.id }}"
-                            aria-expanded="true"
-                            aria-controls="collapse{{ order.id }}">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <span class="h5 mb-0 me-3">#{{ order.id }}</span>
-                                <span class="me-3">{{ order.restaurant.name }}</span>
-                                <span class="me-3">{{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
-                                <span class="badge {{ orders_details[order.id].status_color }} me-3">
-                                        {{ order.status.value|capitalize }}
-                                    </span>
+        <div class="col-lg-6 mb-4">
+            <div class="card order-card h-100" data-status="{{ order.status.value }}">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge status-badge me-2">{{ order.status.value|capitalize }}</span>
+                        <span class="text-muted">#{{ order.id }}</span>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted">{{ order.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title mb-0">{{ order.restaurant.name }}</h5>
+                        <span class="h5 text-primary mb-0">{{ "{:,.0f} đ".format(order.total_amount) }}</span>
+                    </div>
+
+                    <!-- Timeline Progress -->
+                    <div class="order-progress mb-4">
+                        <div class="progress-bar-container">
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar" role="progressbar" style="width: {{ orders_details[order.id].progress }}%;"></div>
                             </div>
-                            <div>
-                                <span class="fw-bold text-danger">{{ "{:,.0f} đ".format(order.total_amount) }}</span>
+                            <div class="progress-steps d-flex justify-content-between">
+                                <div class="step {{ 'active' if order.status in [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.DELIVERED, OrderStatus.COMPLETED] else '' }}">
+                                    <span class="step-icon"><i class="fas fa-utensils"></i></span>
+                                    <span class="step-label">Đặt món</span>
+                                </div>
+                                <div class="step {{ 'active' if order.status in [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.DELIVERED, OrderStatus.COMPLETED] else '' }}">
+                                    <span class="step-icon"><i class="fas fa-check-circle"></i></span>
+                                    <span class="step-label">Xác nhận</span>
+                                </div>
+                                <div class="step {{ 'active' if order.status in [OrderStatus.PREPARING, OrderStatus.DELIVERED, OrderStatus.COMPLETED] else '' }}">
+                                    <span class="step-icon"><i class="fas fa-clock"></i></span>
+                                    <span class="step-label">Chuẩn bị</span>
+                                </div>
+                                <div class="step {{ 'active' if order.status in [OrderStatus.DELIVERED, OrderStatus.COMPLETED] else '' }}">
+                                    <span class="step-icon"><i class="fas fa-motorcycle"></i></span>
+                                    <span class="step-label">Đang giao</span>
+                                </div>
+                                <div class="step {{ 'active' if order.status == OrderStatus.COMPLETED else '' }}">
+                                    <span class="step-icon"><i class="fas fa-check-double"></i></span>
+                                    <span class="step-label">Hoàn thành</span>
+                                </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Order Items -->
+                    <div class="order-items mb-3">
+                        <h6 class="mb-2"><i class="fas fa-list-alt me-2"></i>Chi tiết đơn hàng:</h6>
+                        {% for item in orders_details[order.id].order_items %}
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div class="d-flex align-items-center">
+                                {% if item.menu_item.image_url %}
+                                <img src="{{ item.menu_item.image_url }}"
+                                     alt="{{ item.menu_item.name }}"
+                                     class="rounded me-3"
+                                     style="width: 50px; height: 50px; object-fit: cover;">
+                                {% endif %}
+                                <div>
+                                    <div class="fw-medium">{{ item.menu_item.name }}</div>
+                                    <small class="text-muted">{{ item.quantity }} x {{ "{:,.0f} đ".format(item.price) }}</small>
+                                </div>
+                            </div>
+                            <div class="fw-medium">{{ "{:,.0f} đ".format(item.price * item.quantity) }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Order Summary -->
+                    <div class="order-summary">
+                        {% if order.promo_code %}
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Giảm giá ({{ order.promo_code.code }}):</span>
+                            <span class="text-success">-{{ order.promo_code.discount_value }}{% if order.promo_code.discount_type == DiscountType.PERCENT %}%{% else %}đ{% endif %}</span>
+                        </div>
+                        {% endif %}
+
+                        {% if orders_details[order.id].payment %}
+                        <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+                            <span class="text-muted">Thanh toán:</span>
+                            <div>
+                                <span class="text-capitalize">{{ orders_details[order.id].payment.method.value|replace('_', ' ') }}</span>
+                                <span class="badge ms-1 bg-{{ 'success' if orders_details[order.id].payment.status == PaymentStatus.COMPLETED else 'warning' }}">
+                                    {{ orders_details[order.id].payment.status.value }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+                            <span class="fw-bold">Tổng cộng:</span>
+                            <span class="fw-bold text-primary">{{ "{:,.0f} đ".format(order.total_amount) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="card-footer bg-transparent">
+                    {% if order.status == OrderStatus.PENDING %}
+                    <button class="btn btn-outline-danger btn-sm btn-cancel-order" data-order-id="{{ order.id }}">
+                        <i class="fas fa-times me-1"></i>Hủy đơn hàng
+                    </button>
+                    {% endif %}
+
+                    <button class="btn btn-outline-primary btn-sm float-end" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#orderDetails{{ order.id }}" aria-expanded="false">
+                        <i class="fas fa-chevron-down me-1"></i>Chi tiết
                     </button>
                 </div>
-            </div>
 
-            <div id="collapse{{ order.id }}"
-                 class="collapse {% if loop.first %}show{% endif %}"
-                 aria-labelledby="heading{{ order.id }}"
-                 data-bs-parent="#ordersAccordion">
-                <div class="card-body">
-                    <!-- TIẾN TRÌNH ĐƠN HÀNG -->
-                    <div class="order-timeline mb-4">
-                        <div class="timeline-steps">
-                            <div class="timeline-step {{ 'active' if order.status in [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.DELIVERED, OrderStatus.COMPLETED] else '' }}">
-                                <div class="timeline-icon">
-                                    <i class="fas fa-utensils"></i>
-                                </div>
-                                <div class="timeline-label">Đặt món</div>
+                <!-- Collapsible Details -->
+                <div class="collapse" id="orderDetails{{ order.id }}">
+                    <div class="p-3 border-top">
+                        <h6 class="mb-3"><i class="fas fa-info-circle me-2"></i>Thông tin bổ sung</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Địa chỉ giao hàng:</strong></p>
+                                <p class="text-muted">{{ current_user.default_address or 'Chưa có địa chỉ' }}</p>
                             </div>
-                            <div class="timeline-step {{ 'active' if order.status in [OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.DELIVERED, OrderStatus.COMPLETED] else '' }}">
-                                <div class="timeline-icon">
-                                    <i class="fas fa-check-circle"></i>
-                                </div>
-                                <div class="timeline-label">Nhà hàng xác nhận</div>
-                            </div>
-                            <div class="timeline-step {{ 'active' if order.status in [OrderStatus.PREPARING, OrderStatus.DELIVERED, OrderStatus.COMPLETED] else '' }}">
-                                <div class="timeline-icon">
-                                    <i class="fas fa-clock"></i>
-                                </div>
-                                <div class="timeline-label">Đang chuẩn bị</div>
-                            </div>
-                            <div class="timeline-step {{ 'active' if order.status in [OrderStatus.DELIVERED, OrderStatus.COMPLETED] else '' }}">
-                                <div class="timeline-icon">
-                                    <i class="fas fa-motorcycle"></i>
-                                </div>
-                                <div class="timeline-label">Đang giao</div>
-                            </div>
-                            <div class="timeline-step {{ 'active' if order.status == OrderStatus.COMPLETED else '' }}">
-                                <div class="timeline-icon">
-                                    <i class="fas fa-check-double"></i>
-                                </div>
-                                <div class="timeline-label">Hoàn thành</div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Phương thức thanh toán:</strong></p>
+                                <p class="text-muted text-capitalize">
+                                    {{ orders_details[order.id].payment.method.value|replace('_', ' ') }}
+                                    <span class="badge ms-1 bg-{{ 'success' if orders_details[order.id].payment.status == PaymentStatus.COMPLETED else 'warning' }}">
+                                        {{ orders_details[order.id].payment.status.value }}
+                                    </span>
+                                </p>
                             </div>
                         </div>
+                        {% if order.cancellation_reason %}
+                        <div class="alert alert-warning mt-2">
+                            <strong>Lý do hủy:</strong> {{ order.cancellation_reason }}
+                        </div>
+                        {% endif %}
                     </div>
-                    <h5>Chi tiết đơn hàng:</h5>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                            <tr>
-                                <th>Món ăn</th>
-                                <th>Đơn giá</th>
-                                <th>Số lượng</th>
-                                <th>Thành tiền</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {% for item in orders_details[order.id].order_items %}
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        {% if item.menu_item.image_url %}
-                                        <img src="{{ item.menu_item.image_url }}"
-                                             alt="{{ item.menu_item.name }}"
-                                             class="me-3 rounded"
-                                             style="width: 60px; height: 60px; object-fit: cover;">
-                                        {% endif %}
-                                        <span>{{ item.menu_item.name }}</span>
-                                    </div>
-                                </td>
-                                <td>{{ "{:,.0f} đ".format(item.price) }}</td>
-                                <td>{{ item.quantity }}</td>
-                                <td>{{ "{:,.0f} đ".format(item.price * item.quantity) }}</td>
-                            </tr>
-                            {% endfor %}
-
-                            {% if order.promo_code %}
-                            <tr>
-                                <td colspan="3" class="text-end">Mã giảm giá:</td>
-                                <td>{{ order.promo_code.code }} ({{ order.promo_code.discount_value }}
-                                    {% if order.promo_code.discount_type == DiscountType.PERCENT %}%
-                                    {% else %}đ{% endif %})
-                                </td>
-                            </tr>
-                            {% endif %}
-
-                            </tbody>
-                            <tfoot>
-                            <tr>
-                                <td colspan="3" class="text-end fw-bold">Tổng cộng:</td>
-                                <td class="fw-bold">{{ "{:,.0f} đ".format(order.total_amount) }}</td>
-                            </tr>
-                            {% if orders_details[order.id].payment %}
-                            <tr>
-                                <td colspan="3" class="text-end">Phương thức thanh toán:</td>
-                                <td>
-                                    {{ orders_details[order.id].payment.method.value|replace('_', ' ')|title }}
-                                    <span class="badge bg-{{ 'success' if orders_details[order.id].payment.status == PaymentStatus.COMPLETED else 'warning' }}">
-                                        {{ orders_details[order.id].payment.status.value }}</span>
-                                </td>
-                            </tr>
-                            {% endif %}
-                            </tfoot>
-                        </table>
-                    </div>
-
-                    <!-- Thêm nút hủy đơn hàng cho trạng thái pending -->
-                    {% if order.status == OrderStatus.PENDING %}
-                    <div class="text-end mt-3">
-                        <button class="btn btn-danger btn-cancel-order"
-                                data-order-id="{{ order.id }}">
-                            <i class="fas fa-times me-2"></i>Hủy đơn hàng
-                        </button>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <div class="alert alert-info text-center py-4">
-        <i class="fas fa-info-circle fa-2x mb-3 text-primary"></i>
-        <h4>Bạn chưa có đơn hàng nào đang xử lý</h4>
-        <p class="mt-3">Hãy khám phá các nhà hàng và đặt món ngay!</p>
-        <a href="{{ url_for('customer.restaurants_list') }}" class="btn btn-success btn-lg mt-2">
+    <div class="empty-state text-center py-5">
+        <div class="empty-state-icon mb-4">
+            <i class="fas fa-shopping-basket fa-3x text-muted"></i>
+        </div>
+        <h4 class="text-muted mb-3">Bạn chưa có đơn hàng nào đang xử lý</h4>
+        <p class="text-muted mb-4">Hãy khám phá các nhà hàng và đặt món ngay để trải nghiệm dịch vụ của chúng tôi!</p>
+        <a href="{{ url_for('customer.restaurants_list') }}" class="btn btn-primary btn-lg">
             <i class="fas fa-utensils me-2"></i>Đặt hàng ngay
         </a>
     </div>
     {% endif %}
+</div>
 
-    <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="cancelModalLabel">Lý do hủy đơn hàng</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="cancelReasonForm">
-                        <input type="hidden" id="cancelOrderId">
-                        <div class="mb-3">
-                            <label class="form-label">Chọn lý do hủy đơn:</label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="cancelReason" id="reason1"
-                                       value="Thay đổi ý định">
-                                <label class="form-check-label" for="reason1">Thay đổi ý định</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="cancelReason" id="reason2"
-                                       value="Đặt nhầm món">
-                                <label class="form-check-label" for="reason2">Đặt nhầm món</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="cancelReason" id="reason3"
-                                       value="Thời gian giao hàng quá lâu">
-                                <label class="form-check-label" for="reason3">Thời gian giao hàng quá lâu</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="cancelReason" id="reason4"
-                                       value="Tìm thấy nhà hàng khác">
-                                <label class="form-check-label" for="reason4">Tìm thấy nhà hàng khác</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="cancelReason" id="reasonOther"
-                                       value="other">
-                                <label class="form-check-label" for="reasonOther">Lý do khác</label>
-                            </div>
+<!-- Cancel Order Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelModalLabel">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>Xác nhận hủy đơn hàng
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn hủy đơn hàng này? Vui lòng chọn lý do dưới đây:</p>
+
+                <form id="cancelReasonForm">
+                    <input type="hidden" id="cancelOrderId">
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Lý do hủy đơn:</label>
+                        <div class="list-group">
+                            <label class="list-group-item">
+                                <input class="form-check-input me-2" type="radio" name="cancelReason" value="Thay đổi ý định">
+                                Thay đổi ý định
+                            </label>
+                            <label class="list-group-item">
+                                <input class="form-check-input me-2" type="radio" name="cancelReason" value="Đặt nhầm món">
+                                Đặt nhầm món
+                            </label>
+                            <label class="list-group-item">
+                                <input class="form-check-input me-2" type="radio" name="cancelReason" value="Thời gian giao hàng quá lâu">
+                                Thời gian giao hàng quá lâu
+                            </label>
+                            <label class="list-group-item">
+                                <input class="form-check-input me-2" type="radio" name="cancelReason" value="Tìm thấy nhà hàng khác">
+                                Tìm thấy nhà hàng khác
+                            </label>
+                            <label class="list-group-item">
+                                <input class="form-check-input me-2" type="radio" name="cancelReason" value="other">
+                                Lý do khác
+                            </label>
                         </div>
-                        <div class="mb-3" id="customReasonContainer" style="display: none;">
-                            <label for="customReason" class="form-label">Nhập lý do khác:</label>
-                            <textarea class="form-control" id="customReason" rows="3"
-                                      placeholder="Vui lòng nhập lý do hủy đơn hàng của bạn"></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="button" class="btn btn-danger" id="confirmCancel">Xác nhận hủy</button>
-                </div>
+                    </div>
+                    <div class="mb-3" id="customReasonContainer" style="display: none;">
+                        <label for="customReason" class="form-label">Vui lòng mô tả lý do:</label>
+                        <textarea class="form-control" id="customReason" rows="3" placeholder="Nhập lý do hủy đơn hàng của bạn..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Quay lại</button>
+                <button type="button" class="btn btn-danger" id="confirmCancel">
+                    <i class="fas fa-times me-1"></i>Xác nhận hủy
+                </button>
             </div>
         </div>
     </div>
@@ -216,12 +234,6 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Tự động mở đơn hàng đầu tiên
-        const firstOrder = document.querySelector('.accordion .collapse');
-        if (firstOrder) {
-            new bootstrap.Collapse(firstOrder, { toggle: true });
-        }
-
         // Xử lý hiển thị ô nhập lý do tùy chỉnh
         document.querySelectorAll('input[name="cancelReason"]').forEach(radio => {
             radio.addEventListener('change', function() {
@@ -237,7 +249,7 @@
         // Xử lý mở modal khi click nút hủy
         document.querySelectorAll('.btn-cancel-order').forEach(btn => {
             btn.addEventListener('click', function(e) {
-                e.preventDefault(); // Ngăn hành vi mặc định
+                e.preventDefault();
                 const orderId = this.dataset.orderId;
                 document.getElementById('cancelOrderId').value = orderId;
 
@@ -298,79 +310,151 @@
 </script>
 
 <style>
-    .order-timeline {
-        position: relative;
-        padding: 20px 0;
+    /* Gradient text */
+    .text-gradient-primary {
+        background: linear-gradient(45deg, #4e54c8, #8f94fb);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 700;
     }
 
-    .timeline-steps {
-        display: flex;
-        justify-content: space-between;
-        position: relative;
+    /* Order card styling */
+    .order-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        overflow: hidden;
+        border: none;
     }
 
-    .timeline-step {
-        flex: 1;
+    .order-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Status badges */
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.8rem;
+    }
+
+    /* Order progress */
+    .order-progress {
+        padding: 15px 0;
+    }
+
+    .progress-steps {
+        position: relative;
+        margin-top: 15px;
+    }
+
+    .step {
         text-align: center;
         position: relative;
-        opacity: 0.5;
-        transition: opacity 0.3s ease;
+        z-index: 2;
+        flex: 1;
     }
 
-    .timeline-step.active {
-        opacity: 1;
-    }
-
-    .timeline-step:not(:last-child):after {
-        content: '';
-        position: absolute;
-        top: 30px;
-        left: 50%;
-        width: 100%;
-        height: 2px;
-        background-color: #dee2e6;
-        z-index: 1;
-    }
-
-    .timeline-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: #f8f9fa;
-        border: 2px solid #dee2e6;
-        display: flex;
+    .step-icon {
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        margin: 0 auto 10px;
-        position: relative;
-        z-index: 2;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: #e9ecef;
+        color: #6c757d;
+        margin-bottom: 5px;
         transition: all 0.3s ease;
     }
 
-    .timeline-step.active .timeline-icon {
-        background: #0d6efd;
-        border-color: #0d6efd;
+    .step.active .step-icon {
+        background-color: #4e54c8;
         color: white;
+        box-shadow: 0 0 0 5px rgba(78, 84, 200, 0.2);
     }
 
-    .timeline-step.completed .timeline-icon {
-        background: #198754;
-        border-color: #198754;
-        color: white;
-    }
-
-    .timeline-label {
-        font-size: 0.9rem;
+    .step-label {
+        font-size: 0.7rem;
         font-weight: 500;
+        color: #6c757d;
+        display: block;
     }
 
-    /* Các style hiện tại khác giữ nguyên */
-    .card-header {
-        cursor: pointer;
-        transition: background-color 0.2s;
+    .step.active .step-label {
+        color: #4e54c8;
+        font-weight: 600;
     }
-    .card-header:hover {
-        background-color: #f8f9fa !important;
+
+    /* Progress bar */
+    .progress-bar-container {
+        position: relative;
+    }
+
+    .progress {
+        background-color: #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        background: linear-gradient(45deg, #4e54c8, #8f94fb);
+        transition: width 0.5s ease;
+    }
+
+    /* Empty state */
+    .empty-state {
+        background-color: #f8f9fa;
+        border-radius: 16px;
+        padding: 3rem !important;
+    }
+
+    .empty-state-icon {
+        opacity: 0.5;
+    }
+
+    /* List group customization */
+    .list-group-item {
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        margin-bottom: 5px;
+        border-radius: 8px !important;
+    }
+
+    .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    /* Order status specific colors */
+    .order-card[data-status="pending"] .status-badge {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .order-card[data-status="confirmed"] .status-badge {
+        background-color: #cce5ff;
+        color: #004085;
+    }
+
+    .order-card[data-status="preparing"] .status-badge {
+        background-color: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .order-card[data-status="delivered"] .status-badge {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .order-card[data-status="completed"] .status-badge {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .order-card[data-status="cancelled"] .status-badge {
+        background-color: #f8d7da;
+        color: #721c24;
     }
 </style>
 {% endblock %}

@@ -1,5 +1,5 @@
 # customer.py
-from flask import Blueprint, flash
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import func
 
@@ -7,6 +7,9 @@ from OrderingFoodApp.dao.order_owner import OrderDAO
 from OrderingFoodApp.models import *
 from OrderingFoodApp.dao import customer_service as dao
 from datetime import datetime
+from OrderingFoodApp.dao.cart_service import get_cart_items, group_items_by_restaurant
+from datetime import datetime, time, timedelta
+import pytz
 from OrderingFoodApp.dao.cart_service import get_cart_items
 
 customer_bp = Blueprint('customer', __name__, url_prefix='/customer')
@@ -61,10 +64,18 @@ def index():
 @customer_bp.route('/restaurants_list')
 def restaurants_list():
     search_query = request.args.get('search', '')
-    search_type = request.args.get('search_type', 'restaurants')  # Mặc định là tìm nhà hàng
     category_id = request.args.get('category_id', type=int)
+    sort_by = request.args.get('sort_by', 'default')
     page = request.args.get('page', 1, type=int)
     per_page = 12
+
+    restaurants = []
+    menu_items = []
+    search_type = request.args.get('search_type', 'restaurants')
+
+    restaurants = []
+    menu_items = []
+    search_type = request.args.get('search_type', 'restaurants')
 
     # Xác định loại truy vấn
     if search_query:
@@ -74,15 +85,15 @@ def restaurants_list():
             menu_items = data['menu_items']
         else:
             # Tìm kiếm NHÀ HÀNG THEO TÊN (sử dụng hàm mới)
-            data = dao.get_restaurants_by_name(search_query, page, per_page)
+            data = dao.get_restaurants_by_name(search_query, page, per_page, sort_by)
             restaurants = data['restaurants']
     elif category_id:
         # Tìm theo danh mục (chỉ áp dụng cho nhà hàng)
-        data = dao.get_restaurants_by_category(category_id, page, per_page)
+        data = dao.get_restaurants_by_category(category_id, page, per_page, sort_by)
         restaurants = data['restaurants']
         search_type = 'restaurants'  # Đảm bảo hiển thị đúng loại
     else:
-        data = dao.get_all_restaurants(page, per_page)
+        data = dao.get_all_restaurants(page, per_page, sort_by)
         restaurants = data['restaurants']
         search_type = 'restaurants'  # Đảm bảo hiển thị đúng loại
 
@@ -95,10 +106,6 @@ def restaurants_list():
         total_pages = 0
     else:
         total_pages = (data['total'] + per_page - 1) // per_page
-
-    # # Tính toán start_page và end_page
-    # start_page = max(1, page - 2)
-    # end_page = min(total_pages, page + 2)
 
     # Tính toán start_page và end_page CHỈ KHI CÓ TRANG
     if total_pages > 0:
@@ -137,6 +144,10 @@ def restaurants_list():
         PromoCode.end_date >= current_time
     ).limit(5).all()
 
+    vietnam_time = get_vietnam_time()
+    for restaurant in restaurants:
+        restaurant.is_open = is_restaurant_open(restaurant)
+
     # Truyền dữ liệu phù hợp với loại tìm kiếm
     if search_type == 'dishes':
         return render_template('customer/restaurants_list.html',
@@ -166,6 +177,26 @@ def _is_open_now(opening: time, closing: time, now: time) -> bool:
     if opening <= closing:
         return opening <= now < closing
     else:
+        return now >= opening or now < closing
+
+def get_vietnam_time():
+    # Get current time in Vietnam timezone (UTC+7)
+    utc_now = datetime.utcnow()
+    vietnam_offset = timedelta(hours=7)
+    vietnam_time = utc_now + vietnam_offset
+    return vietnam_time.time()
+
+
+# Add this function to check if restaurant is open
+def is_restaurant_open(restaurant):
+    now = get_vietnam_time()
+    opening = restaurant.opening_time
+    closing = restaurant.closing_time
+
+    if opening <= closing:
+        return opening <= now < closing
+    else:
+        # Handle overnight opening (e.g., 18:00 to 02:00)
         return now >= opening or now < closing
 
 @customer_bp.route("/restaurant/<int:restaurant_id>")
@@ -348,9 +379,17 @@ def checkout():
     }
     session.modified = True
 
+    # Get restaurant info
+    restaurant = None
+    if items:
+        first_item = MenuItem.query.get(items[0]['id'])
+        if first_item:
+            restaurant = Restaurant.query.get(first_item.restaurant_id)
+
     return render_template('customer/checkout.html',
                            items=items,
-                           total_price=total_price)
+                           total_price=total_price,
+                           restaurant=restaurant )
 
 
 
