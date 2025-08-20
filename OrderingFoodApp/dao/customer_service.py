@@ -4,22 +4,44 @@ from OrderingFoodApp.models import *
 from OrderingFoodApp import db
 from flask import request
 from datetime import datetime
+from datetime import datetime, timedelta
 
 # Tìm kiếm nhà hàng theo TÊN NHÀ HÀNG
-def get_restaurants_by_name(search_query, page, per_page=12):
-    restaurants = db.session.query(
+def get_restaurants_by_name(search_query, page, per_page=12, sort_by='default'):
+    # Build base query
+    query = db.session.query(
         Restaurant,
         func.coalesce(func.avg(Review.rating), 0.0).label('avg_rating')
     ) \
         .outerjoin(Review, Review.restaurant_id == Restaurant.id) \
-        .filter(Restaurant.name.ilike(f'%{search_query}%'), Restaurant.approval_status == RestaurantApprovalStatus.APPROVED) \
-        .group_by(Restaurant.id) \
-        .order_by(Restaurant.id) \
-        .paginate(page=page, per_page=per_page)
+        .filter(Restaurant.name.ilike(f'%{search_query}%'),
+                Restaurant.approval_status == RestaurantApprovalStatus.APPROVED) \
+        .group_by(Restaurant.id)
+
+    # Apply sorting
+    if sort_by == 'rating':
+        query = query.order_by(func.coalesce(func.avg(Review.rating), 0.0).desc())
+    else:
+        query = query.order_by(Restaurant.id)
+
+    # Paginate the query
+    restaurants = query.paginate(page=page, per_page=per_page)
+
+    # Get restaurant IDs for price range calculation
+    restaurant_ids = [restaurant.id for restaurant, avg_rating in restaurants.items]
+
+    # Get price ranges
+    price_ranges = get_restaurant_price_ranges(restaurant_ids)
 
     results = []
     for restaurant, avg_rating in restaurants.items:
         restaurant.avg_rating = round(avg_rating, 1) if avg_rating else 0.0
+
+        # Add price range
+        min_price, max_price = price_ranges.get(restaurant.id, (0, 0))
+        restaurant.min_price = min_price
+        restaurant.max_price = max_price
+
         results.append(restaurant)
 
     return {
@@ -31,47 +53,70 @@ def get_restaurants_by_name(search_query, page, per_page=12):
 
 # Tìm món ăn chứa từ khóa, kèm theo thông tin nhà hàng
 def get_menu_items_by_name(search_query, page, per_page=12):
+    # Sửa lại query để join và lấy kết quả đúng cách
+    query = (db.session.query(MenuItem)
+             .join(Restaurant, MenuItem.restaurant_id == Restaurant.id)
+             .filter(
+        MenuItem.name.ilike(f'%{search_query}%'),
+        Restaurant.approval_status == RestaurantApprovalStatus.APPROVED,
+        MenuItem.is_active == True
+    )
+             .order_by(MenuItem.id))
 
-    menu_items = MenuItem.query \
-        .join(Restaurant, MenuItem.restaurant_id == Restaurant.id) \
-        .filter(MenuItem.name.ilike(f'%{search_query}%')) \
-        .add_entity(Restaurant) \
-        .order_by(MenuItem.id) \
-        .paginate(page=page, per_page=per_page)
+    # Phân trang
+    paginated_results = query.paginate(page=page, per_page=per_page)
 
-    # Tạo danh sách kết quả với đầy đủ thông tin
+    # Tạo danh sách kết quả
     results = []
-    for item in menu_items.items:
-        # item[0] là MenuItem, item[customer] là Restaurant
-        menu_item = item[0]
-        menu_item.restaurant = item[1]  # Gán nhà hàng cho món ăn
+    for menu_item in paginated_results.items:
+        # Đảm bảo load restaurant information
+        menu_item.restaurant = Restaurant.query.get(menu_item.restaurant_id)
         results.append(menu_item)
 
     return {
         'menu_items': results,
         'page': page,
         'per_page': per_page,
-        'total': menu_items.total
+        'total': paginated_results.total
     }
 
 # Tính điểm trung bình cho mỗi nhà hàng
-def get_restaurants_by_category(category_id, page, per_page=12):
-    # Tính điểm trung bình cho mỗi nhà hàng
-    restaurants = db.session.query(
+def get_restaurants_by_category(category_id, page, per_page=12, sort_by='default'):
+    # Build base query
+    query = db.session.query(
         Restaurant,
         func.coalesce(func.avg(Review.rating), 0.0).label('avg_rating')
     ) \
         .join(MenuItem, Restaurant.id == MenuItem.restaurant_id) \
         .outerjoin(Review, Review.restaurant_id == Restaurant.id) \
         .filter(MenuItem.category_id == category_id, Restaurant.approval_status == RestaurantApprovalStatus.APPROVED) \
-        .group_by(Restaurant.id) \
-        .order_by(Restaurant.id) \
-        .paginate(page=page, per_page=per_page)
+        .group_by(Restaurant.id)
+
+    # Apply sorting
+    if sort_by == 'rating':
+        query = query.order_by(func.coalesce(func.avg(Review.rating), 0.0).desc())
+    else:
+        query = query.order_by(Restaurant.id)
+
+    # Paginate the query
+    restaurants = query.paginate(page=page, per_page=per_page)
+
+    # Get restaurant IDs for price range calculation
+    restaurant_ids = [restaurant.id for restaurant, avg_rating in restaurants.items]
+
+    # Get price ranges
+    price_ranges = get_restaurant_price_ranges(restaurant_ids)
 
     # Gán điểm trung bình vào đối tượng nhà hàng
     results = []
     for restaurant, avg_rating in restaurants.items:
         restaurant.avg_rating = round(avg_rating, 1) if avg_rating else 0.0
+
+        # Add price range
+        min_price, max_price = price_ranges.get(restaurant.id, (0, 0))
+        restaurant.min_price = min_price
+        restaurant.max_price = max_price
+
         results.append(restaurant)
 
     return {
@@ -81,22 +126,60 @@ def get_restaurants_by_category(category_id, page, per_page=12):
         'total': restaurants.total
     }
 
-def get_all_restaurants(page, per_page=12):
-    # Tính điểm trung bình cho mỗi nhà hàng
-    restaurants = db.session.query(
+
+def get_all_restaurants(page, per_page=12, sort_by='default'):
+    # Build base query
+    query = db.session.query(
         Restaurant,
         func.coalesce(func.avg(Review.rating), 0.0).label('avg_rating')
     ) \
-        .filter(Restaurant.approval_status == RestaurantApprovalStatus.APPROVED)\
+        .filter(Restaurant.approval_status == RestaurantApprovalStatus.APPROVED) \
         .outerjoin(Review, Review.restaurant_id == Restaurant.id) \
-        .group_by(Restaurant.id) \
-        .order_by(Restaurant.id) \
-        .paginate(page=page, per_page=per_page)
+        .group_by(Restaurant.id)
+
+    # Apply sorting
+    if sort_by == 'rating':
+        query = query.order_by(func.coalesce(func.avg(Review.rating), 0.0).desc())
+    elif sort_by == 'price_low_to_high':
+        # Get restaurants with their minimum price and sort by it
+        subquery = db.session.query(
+            MenuItem.restaurant_id,
+            func.min(MenuItem.price).label('min_price')
+        ).filter(MenuItem.is_active == True).group_by(MenuItem.restaurant_id).subquery()
+
+        query = query.join(subquery, Restaurant.id == subquery.c.restaurant_id) \
+            .order_by(subquery.c.min_price.asc())
+    elif sort_by == 'price_high_to_low':
+        # Get restaurants with their maximum price and sort by it
+        subquery = db.session.query(
+            MenuItem.restaurant_id,
+            func.max(MenuItem.price).label('max_price')
+        ).filter(MenuItem.is_active == True).group_by(MenuItem.restaurant_id).subquery()
+
+        query = query.join(subquery, Restaurant.id == subquery.c.restaurant_id) \
+            .order_by(subquery.c.max_price.desc())
+    else:
+        query = query.order_by(Restaurant.id)
+
+    # Paginate the query
+    restaurants = query.paginate(page=page, per_page=per_page)
+
+    # Get restaurant IDs
+    restaurant_ids = [restaurant.id for restaurant, avg_rating in restaurants.items]
+
+    # Get price ranges
+    price_ranges = get_restaurant_price_ranges(restaurant_ids)
 
     # Gán điểm trung bình vào đối tượng nhà hàng
     results = []
     for restaurant, avg_rating in restaurants.items:
         restaurant.avg_rating = round(avg_rating, 1) if avg_rating else 0.0
+
+        # Add price range
+        min_price, max_price = price_ranges.get(restaurant.id, (0, 0))
+        restaurant.min_price = min_price
+        restaurant.max_price = max_price
+
         results.append(restaurant)
 
     return {
@@ -114,25 +197,6 @@ def get_menu_item_by_id(menu_item_id):
 
 
 def get_orders_history(customer_id):
-    """
-    Lấy lịch sử đơn hàng (completed hoặc cancelled) của một khách hàng
-    """
-    # orders = Order.query.filter_by(customer_id=customer_id) \
-    #     .filter(Order.status.in_([OrderStatus.COMPLETED, OrderStatus.CANCELLED])) \
-    #     .options(
-    #     db.joinedload(Order.restaurant),
-    #     db.joinedload(Order.order_items).joinedload(OrderItem.menu_item)
-    # ) \
-    #     .order_by(Order.created_at.desc()) \
-    #     .all()
-    #
-    # # Đảm bảo mỗi order có thuộc tính order_items (ngay cả khi rỗng)
-    # for order in orders:
-    #     if not hasattr(order, 'order_items'):
-    #         order.order_items = []
-    #
-    # return orders
-
     orders = Order.query.filter_by(customer_id=customer_id) \
         .filter(Order.status.in_([OrderStatus.COMPLETED, OrderStatus.CANCELLED])) \
         .options(
@@ -228,3 +292,35 @@ def place_order(customer_id, order_data, checkout_data):
         'success': True,
         'order_id': new_order.id
     }
+
+
+# Add this function to calculate price ranges
+def get_restaurant_price_ranges(restaurant_ids):
+    """
+    Calculate min and max prices for given restaurant IDs
+    """
+    price_ranges = db.session.query(
+        MenuItem.restaurant_id,
+        func.min(MenuItem.price).label('min_price'),
+        func.max(MenuItem.price).label('max_price')
+    ).filter(
+        MenuItem.restaurant_id.in_(restaurant_ids),
+        MenuItem.is_active == True
+    ).group_by(MenuItem.restaurant_id).all()
+
+    return {r.restaurant_id: (r.min_price, r.max_price) for r in price_ranges}
+
+def get_vietnam_time():
+    # Get current time in Vietnam timezone (UTC+7)
+    utc_now = datetime.utcnow()
+    vietnam_offset = timedelta(hours=7)
+    vietnam_time = utc_now + vietnam_offset
+    return vietnam_time.time()
+
+def _is_open_now(opening, closing, now):
+    if not opening or not closing:
+        return False
+    if opening <= closing:
+        return opening <= now < closing
+    else:
+        return now >= opening or now < closing
