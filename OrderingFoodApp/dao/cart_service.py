@@ -89,7 +89,10 @@ def update_cart(action, item_id, quantity=None):
         # Xóa những món không còn trong session
         for mid, ci in list(db_items.items()):
             if mid not in cart:
-                db.session.delete(ci)
+                CartItem.query.filter(
+                    CartItem.cart_id == user_cart.id,
+                    CartItem.menu_item_id == int(mid)
+                ).delete(synchronize_session=False)
 
         db.session.commit()
 
@@ -109,6 +112,7 @@ def get_cart_items():
         total_price += subtotal
         items.append({
             'id': menu_item.id,
+            'restaurant_id': menu_item.restaurant_id,
             'name': menu_item.name,
             'price': float(menu_item.price),
             'quantity': quantity,
@@ -126,12 +130,21 @@ def get_cart_items():
 #         grouped.setdefault(item['restaurant_name'], []).append(item)
 #     return grouped
 
+# def group_items_by_restaurant(items):
+#     grouped = {}
+#     for it in items:
+#         id = it.get('restaurant_id') if 'restaurant_id' in it else MenuItem.query.get(it['id']).restaurant_id
+#         name = it.get('restaurant_name')
+#         bucket = grouped.setdefault(id, {'name': name, 'items': []})
+#         bucket['items'].append(it)
+#     return grouped
+
 def group_items_by_restaurant(items):
     grouped = {}
     for it in items:
-        id = it.get('restaurant_id') if 'restaurant_id' in it else MenuItem.query.get(it['id']).restaurant_id
-        name = it.get('restaurant_name')
-        bucket = grouped.setdefault(id, {'name': name, 'items': []})
+        rid = it['restaurant_id']
+        bucket = grouped.setdefault(rid, {'name': it.get('restaurant_name'), 'items': []})
         bucket['items'].append(it)
     return grouped
+
 
