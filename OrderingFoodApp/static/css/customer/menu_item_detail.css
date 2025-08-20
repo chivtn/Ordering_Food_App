@@ -89,7 +89,7 @@ input[type="number"]::-webkit-outer-spin-button {
     text-align: center;
     border: 0.1px solid var(--primary-color);
     height: 34px; /* Chiều cao bằng btn-success */
-    width: 34px;  /
+    width: 34px;
     border-radius: 50px;
     font-size: 1rem;
     transition: var(--transition);
@@ -188,6 +188,35 @@ input[type="number"] {
 .bg-secondary-subtle {
     background: rgba(255,255,255,0.3);
     color: #686868 !important;
+}
+
+/* Khung ảnh món ăn bên trái */
+.item-thumb{
+    width: 100%;
+    /* Giữ tỉ lệ khung, ví dụ 4:3 – tuỳ bạn muốn */
+    aspect-ratio: 4 / 3;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #f3f4f6; /* nền nhạt khi chưa tải ảnh */
+}
+
+/* Ảnh luôn phủ kín khung, không méo */
+.item-thumb img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Giá món ăn */
+.price {
+    font-size: 1.8rem;           /* to hơn một chút */
+    font-weight: 680;            /* in đậm */
+    font-family: 'Segoe UI',     /* font hiện đại, đồng bộ */
+                 'Helvetica Neue',
+                 Arial, sans-serif;
+    color: var(--primary-color); /* giữ màu thương hiệu */
+    letter-spacing: -0.5px;      /* chữ gọn, tinh tế hơn */
 }
 
 
