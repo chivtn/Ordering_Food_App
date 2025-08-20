@@ -113,7 +113,6 @@ def momo_payment(order_id):
 
     return redirect(pay_url)
 
-
 @customer_bp.route('/payment/momo_atm/<int:order_id>')
 @login_required
 def momo_payment_atm(order_id):
@@ -130,13 +129,14 @@ def momo_payment_atm(order_id):
     secretKey   = current_app.config['MOMO_SECRET_KEY'].strip()
 
     base_id   = str(order.id)
-    orderId   = f"{base_id}-{int(time.time())}"
-    requestId = f"{base_id}-{int(time.time())}"
+    ts        = int(time.time())
+    orderId   = f"{base_id}-{ts}"
+    requestId = f"{base_id}-{ts}"
     amount    = int(order.total_amount)
     extraData = ""
+    orderInfo = f"Thanh toan don hang #{base_id}"
 
-    # build redirect/ipn giống như bạn đã làm với EXTERNAL_BASE_URL
-    base = current_app.config.get("EXTERNAL_BASE_URL")
+    base = (current_app.config.get("EXTERNAL_BASE_URL") or "").strip()
     if base:
         redirectUrl = urljoin(base, url_for('customer.momo_return', _external=False))
         ipnUrl      = urljoin(base, url_for('customer.momo_ipn', _external=False))
@@ -145,23 +145,26 @@ def momo_payment_atm(order_id):
         ipnUrl      = url_for('customer.momo_ipn', _external=True)
 
     requestType = "payWithATM"
-    # OPTIONAL: preset ngân hàng nếu muốn, còn không thì bỏ hẳn biến này đi
-    bankCode = None  # ví dụ: "AGB" / "VCB" ... nếu MoMo yêu cầu mã cụ thể
 
-    # CHÚ Ý: raw-string phải chứa đúng các key bạn GỬI đi
+    # TÙY CHỌN: nếu cần ngân hàng sandbox, set mã tại đây. Nếu không thì để None.
+    bankCode = None  # ví dụ: "SML" nếu bên bạn yêu cầu
+
+    # === CHUỖI KÝ PHẢI TRÙNG ĐÚNG CÁC KEY GỬI LÊN (theo log MoMo) ===
     raw = (
         f"accessKey={accessKey}"
         f"&amount={amount}"
         f"&extraData={extraData}"
         f"&ipnUrl={ipnUrl}"
         f"&orderId={orderId}"
-        f"&orderInfo=Thanh toan don hang #{base_id}"
+        f"&orderInfo={orderInfo}"
         f"&partnerCode={partnerCode}"
         f"&redirectUrl={redirectUrl}"
         f"&requestId={requestId}"
         f"&requestType={requestType}"
-        + (f"&bankCode={bankCode}" if bankCode else "")
     )
+    if bankCode:
+        raw += f"&bankCode={bankCode}"
+
     signature = _momo_sign(raw, secretKey)
 
     payload = {
@@ -170,7 +173,7 @@ def momo_payment_atm(order_id):
         "requestId": requestId,
         "amount": str(amount),
         "orderId": orderId,
-        "orderInfo": f"Thanh toan don hang #{base_id}",
+        "orderInfo": orderInfo,
         "redirectUrl": redirectUrl,
         "ipnUrl": ipnUrl,
         "extraData": extraData,
@@ -184,19 +187,44 @@ def momo_payment_atm(order_id):
     current_app.logger.info("MOMO ATM RAW: %s", raw)
     current_app.logger.info("MOMO ATM PAYLOAD: %s", payload)
 
-    res = requests.post(endpoint, json=payload, timeout=60)
-    data = res.json()
-    if data.get("resultCode") != 0:
-        current_app.logger.error("MoMo ATM create failed: %s", data)
-        flash(f"Lỗi tạo thanh toán ATM: {data.get('message', data)}", "danger")
+    try:
+        res = requests.post(endpoint, json=payload, timeout=60)
+        # NEW: log thô để biết MoMo trả gì
+        current_app.logger.info("MOMO ATM RESP STATUS=%s", res.status_code)
+        current_app.logger.info("MOMO ATM RESP TEXT=%s", res.text)
+
+        try:
+            data = res.json()
+        except Exception:
+            current_app.logger.error("MOMO ATM JSON decode error. Text=%s", res.text)
+            flash("MoMo trả về dữ liệu không hợp lệ.", "danger")
+            return redirect(url_for('customer.order_complete', order_id=order.id))
+
+        data = res.json()
+    except Exception as e:
+        current_app.logger.exception("MoMo ATM request error: %s", e)
+        flash("Không gọi được cổng MoMo (ATM).", "danger")
         return redirect(url_for('customer.order_complete', order_id=order.id))
 
-    pay_url = data.get("payUrl") or data.get("deeplink") or data.get("qrCodeUrl")
+    if str(data.get("resultCode")) != "0":
+        current_app.logger.error("MoMo ATM create failed: %s", data)
+        flash(f"Lỗi tạo thanh toán MoMo ATM: {data.get('message', data)}", "danger")
+        return redirect(url_for('customer.order_complete', order_id=order.id))
+
+    pay_url = (
+        data.get("payUrl")
+        or data.get("deeplink")
+        or data.get("deeplinkUrl")
+        or data.get("shortLink")
+        or data.get("qrCodeUrl")
+    )
     if not pay_url:
-        flash("MoMo không trả về payUrl cho ATM.", "danger")
+        current_app.logger.error("MoMo ATM missing payUrl: %s", data)
+        flash("MoMo không trả về đường dẫn thanh toán ATM.", "danger")
         return redirect(url_for('customer.order_complete', order_id=order.id))
 
     return redirect(pay_url)
+
 
 #verify
 def _momo_build_raw_from_params_for_verify(p: dict, access_key: str) -> str:
@@ -432,49 +460,53 @@ def _vnp_verify(query_params: dict) -> bool:
     calc = _vnp_hash_for_verify(data, secret)
     return bool(recv) and hmac.compare_digest(calc, recv)
 
-
-
 @customer_bp.route('/payment/vnpay/<int:order_id>')
 @login_required
 def vnpay_payment(order_id):
+    # 1) Lấy order TRƯỚC
     order = Order.query.filter_by(id=order_id, customer_id=current_user.id).first_or_404()
 
+    # 2) Lấy cấu hình
     vnp_url    = current_app.config['VNP_API_URL']
     vnp_tmn    = current_app.config['VNP_TMN_CODE']
     vnp_secret = current_app.config['VNP_HASH_SECRET']
-    vnp_return = current_app.config['VNP_RETURN_URL']
 
+    # 3) Build return/ipn cùng host (EXTERNAL_BASE_URL nếu có, ngược lại host hiện tại)
+    base = current_app.config.get("EXTERNAL_BASE_URL")
+    if base:
+        vnp_return = urljoin(base, url_for('customer.vnpay_return', _external=False))
+        vnp_ipn    = urljoin(base, url_for('customer.vnpay_ipn', _external=False))
+    else:
+        vnp_return = url_for('customer.vnpay_return', _external=True)
+        vnp_ipn    = url_for('customer.vnpay_ipn', _external=True)
+
+    # 4) Tham số giao dịch
     now = datetime.now()
     expire = now + timedelta(minutes=15)
-
-    # Bảo đảm TxnRef duy nhất (thêm timestamp)
     txn_ref = f"{order.id}-{int(now.timestamp())}"
-
 
     params = {
         "vnp_Version": "2.1.0",
         "vnp_Command": "pay",
         "vnp_TmnCode": vnp_tmn,
-        "vnp_Amount": int(order.total_amount) * 100,  # KHÔNG chứa dấu , .
+        "vnp_Amount": int(order.total_amount) * 100,
         "vnp_CurrCode": "VND",
-        "vnp_TxnRef": f"{order.id}-{int(datetime.now().timestamp())}",  # duy nhất
+        "vnp_TxnRef": txn_ref,
         "vnp_OrderInfo": f"Thanh toan don hang #{order.id}",
         "vnp_OrderType": "billpayment",
         "vnp_Locale": "vn",
         "vnp_ReturnUrl": vnp_return,
-        "vnp_IpAddr": request.headers.get('X-Forwarded-For',
-                                          request.remote_addr or "127.0.0.1"),
+        "vnp_IpAddr": request.headers.get('X-Forwarded-For', request.remote_addr or "127.0.0.1"),
         "vnp_CreateDate": now.strftime("%Y%m%d%H%M%S"),
         "vnp_ExpireDate": expire.strftime("%Y%m%d%H%M%S"),
         "vnp_SecureHashType": "HMACSHA512",
     }
 
     params["vnp_SecureHash"] = _vnp_hash_for_request(params, vnp_secret)
-
-    # Build URL: dùng urllib.parse.urlencode (mặc định dùng quote_plus -> KHỚP với lúc ký)
     query = urllib.parse.urlencode(params, doseq=True, safe='')
     pay_url = f"{vnp_url}?{query}"
     return redirect(pay_url)
+
 
 
 @customer_bp.route('/payment/vnpay_return')
@@ -506,7 +538,7 @@ def vnpay_return():
         flash("Thanh toán VNPay thất bại", "warning")
 
     db.session.commit()
-    # ➜ về trang hoàn tất
+
     return redirect(url_for("customer.order_complete", order_id=order.id))
 
 
@@ -536,10 +568,8 @@ def vnpay_ipn():
     if resp_code == "00":
         payment.status = PaymentStatus.COMPLETED
         payment.paid_at = datetime.utcnow()
-        # KHÔNG đổi order.status ở đây
     else:
         payment.status = PaymentStatus.FAILED
-        # KHÔNG đổi order.status ở đây
 
     db.session.commit()
     return jsonify({"RspCode": "00", "Message": "Confirm Success"}), 200
