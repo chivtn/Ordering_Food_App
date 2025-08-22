@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Cập nhật trạng thái đơn hàng</title>
+</head>
+<body>
+    <h2>Đơn hàng #{{ order.id }} đã được cập nhật trạng thái</h2>
+    <p>Trạng thái đơn hàng của bạn đã được cập nhật thành: <strong>{{ status_display }}</strong></p>
+
+    <p><strong>Nhà hàng:</strong> {{ order.restaurant.name }}</p>
+    <p><strong>Thời gian cập nhật: </strong> {{ update_time.strftime('%d/%m/%Y %H:%M') }}</p>
+
+    {% if status == 'cancelled' and order.cancellation_reason %}
+    <p><strong>Lý do hủy đơn: </strong> {{ order.cancellation_reason }}</p>
+    {% endif %}
+
+    <p>Lý do hủy đơn:</p>
+</body>
+</html>

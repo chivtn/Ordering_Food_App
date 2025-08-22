@@ -31,14 +31,20 @@ def init_app():
     from OrderingFoodApp.config import Config
     app.config.from_object(Config)
 
-    # ====== CẤU HÌNH EMAIL (GMAIL SMTP) ======
-    app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
-    app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT", 587))
-    app.config['MAIL_USE_TLS'] = os.getenv("MAIL_USE_TLS", "True") == "True"
-    app.config['MAIL_USE_SSL'] = os.getenv("MAIL_USE_SSL", "False") == "True"
-    app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
-    app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
-    app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER")
+    # # ====== CẤU HÌNH EMAIL (GMAIL SMTP) ======
+    # app.config['MAIL_SERVER'] = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+    # app.config['MAIL_PORT'] = int(os.getenv("MAIL_PORT", 587))
+    # app.config['MAIL_USE_TLS'] = os.getenv("MAIL_USE_TLS", "True") == "True"
+    # app.config['MAIL_USE_SSL'] = os.getenv("MAIL_USE_SSL", "False") == "True"
+    # app.config['MAIL_USERNAME'] = os.getenv("MAIL_USERNAME")
+    # app.config['MAIL_PASSWORD'] = os.getenv("MAIL_PASSWORD")
+    # app.config['MAIL_DEFAULT_SENDER'] = os.getenv("MAIL_DEFAULT_SENDER")
+
+    # # ====== CẤU HÌNH SMS ======
+    # app.config['VONAGE_API_KEY'] = os.environ.get('VONAGE_API_KEY', 'your_api_key')
+    # app.config['VONAGE_API_SECRET'] = os.environ.get('VONAGE_API_SECRET', 'your_api_secret')
+    # app.config['VONAGE_BRAND_NAME'] = os.environ.get('VONAGE_BRAND_NAME', 'OrderingFood')
+
 
     # ====== INITIALIZE EXTENSIONS ======
     db.init_app(app)
@@ -46,6 +52,8 @@ def init_app():
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     login_manager.login_message_category = 'info'
+    mail.init_app(app)
+
 
     from OrderingFoodApp.models import User, UserRole
     @login_manager.user_loader

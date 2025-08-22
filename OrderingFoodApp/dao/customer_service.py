@@ -324,3 +324,42 @@ def _is_open_now(opening, closing, now):
         return opening <= now < closing
     else:
         return now >= opening or now < closing
+
+# customer_service.py
+# def send_sms(to_phone, message):
+#     try:
+#         # Sửa định dạng số điện thoại
+#         if to_phone.startswith('0'):
+#             to_phone = '+84' + to_phone[1:]  # Chuẩn quốc tế: +84xxxxxxxxx
+#
+#         api_key = current_app.config['VONAGE_API_KEY']
+#         api_secret = current_app.config['VONAGE_API_SECRET']
+#         brand_name = current_app.config['VONAGE_BRAND_NAME']
+#
+#         url = "https://rest.nexmo.com/sms/json"
+#
+#         # Sửa lỗi Unicode - GỬI DẠNG UNICODE
+#         payload = {
+#             "from": brand_name,
+#             "text": message,
+#             "to": to_phone,
+#             "api_key": api_key,
+#             "api_secret": api_secret,
+#             "type": "unicode"  # QUAN TRỌNG: Dùng cho ký tự đặc biệt
+#         }
+#
+#         response = requests.post(url, data=payload)
+#         result = response.json()
+#
+#         # Debug: Log toàn bộ response
+#         current_app.logger.info(f"Vonage full response: {json.dumps(result, indent=2)}")
+#
+#         if result['messages'][0]['status'] == '0':
+#             return True
+#         else:
+#             error_text = result['messages'][0]['error-text']
+#             current_app.logger.error(f"Failed to send SMS: {error_text}")
+#             return False
+#     except Exception as e:
+#         current_app.logger.error(f"SMS error: {str(e)}")
+#         return False
