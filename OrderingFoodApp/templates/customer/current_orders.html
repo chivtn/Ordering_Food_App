@@ -41,9 +41,15 @@
                     <div class="order-progress mb-4">
                         <div class="progress-bar-container">
                             <div class="progress" style="height: 8px;">
-                                <div class="progress-bar" role="progressbar" style="width: {{ orders_details[order.id].progress }}%;"></div>
+                                <div class="progress-bar progress-bar-animated progress-bar-{{ order.status.value }}"
+                                     role="progressbar"
+                                     style="width: {{ orders_details[order.id].progress }}%;"
+                                     aria-valuenow="{{ orders_details[order.id].progress }}"
+                                     aria-valuemin="0"
+                                     aria-valuemax="100">
+                                </div>
                             </div>
-                            <div class="progress-steps d-flex justify-content-between">
+                            <div class="progress-steps d-flex justify-content-between mt-2">
                                 <div class="step {{ 'active' if order.status in [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.DELIVERED, OrderStatus.COMPLETED] else '' }}">
                                     <span class="step-icon"><i class="fas fa-utensils"></i></span>
                                     <span class="step-label">Đặt món</span>
@@ -69,9 +75,29 @@
                     </div>
 
                     <!-- Order Items -->
+                    <!--                    <div class="order-items mb-3">-->
+                    <!--                        <h6 class="mb-2"><i class="fas fa-list-alt me-2"></i>Chi tiết đơn hàng:</h6>-->
+                    <!--                        {% for item in orders_details[order.id].order_items %}-->
+                    <!--                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">-->
+                    <!--                            <div class="d-flex align-items-center">-->
+                    <!--                                {% if item.menu_item.image_url %}-->
+                    <!--                                <img src="{{ item.menu_item.image_url }}"-->
+                    <!--                                     alt="{{ item.menu_item.name }}"-->
+                    <!--                                     class="rounded me-3"-->
+                    <!--                                     style="width: 50px; height: 50px; object-fit: cover;">-->
+                    <!--                                {% endif %}-->
+                    <!--                                <div>-->
+                    <!--                                    <div class="fw-medium">{{ item.menu_item.name }}</div>-->
+                    <!--                                    <small class="text-muted">{{ item.quantity }} x {{ "{:,.0f} đ".format(item.price) }}</small>-->
+                    <!--                                </div>-->
+                    <!--                            </div>-->
+                    <!--                            <div class="fw-medium">{{ "{:,.0f} đ".format(item.price * item.quantity) }}</div>-->
+                    <!--                        </div>-->
+                    <!--                        {% endfor %}-->
+                    <!--                    </div>-->
                     <div class="order-items mb-3">
                         <h6 class="mb-2"><i class="fas fa-list-alt me-2"></i>Chi tiết đơn hàng:</h6>
-                        {% for item in orders_details[order.id].order_items %}
+                        {% for item in orders_details[order.id].order_items[:1] %}
                         <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                             <div class="d-flex align-items-center">
                                 {% if item.menu_item.image_url %}
@@ -82,12 +108,45 @@
                                 {% endif %}
                                 <div>
                                     <div class="fw-medium">{{ item.menu_item.name }}</div>
-                                    <small class="text-muted">{{ item.quantity }} x {{ "{:,.0f} đ".format(item.price) }}</small>
+                                    <small class="text-muted">{{ item.quantity }} x {{ "{:,.0f} đ".format(item.price)
+                                        }}</small>
                                 </div>
                             </div>
                             <div class="fw-medium">{{ "{:,.0f} đ".format(item.price * item.quantity) }}</div>
                         </div>
                         {% endfor %}
+
+                        {% if orders_details[order.id].order_items|length > 1 %}
+                        <div class="collapse" id="moreItems{{ order.id }}">
+                            {% for item in orders_details[order.id].order_items[1:] %}
+                            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <div class="d-flex align-items-center">
+                                    {% if item.menu_item.image_url %}
+                                    <img src="{{ item.menu_item.image_url }}"
+                                         alt="{{ item.menu_item.name }}"
+                                         class="rounded me-3"
+                                         style="width: 50px; height: 50px; object-fit: cover;">
+                                    {% endif %}
+                                    <div>
+                                        <div class="fw-medium">{{ item.menu_item.name }}</div>
+                                        <small class="text-muted">{{ item.quantity }} x {{ "{:,.0f}
+                                            đ".format(item.price) }}</small>
+                                    </div>
+                                </div>
+                                <div class="fw-medium">{{ "{:,.0f} đ".format(item.price * item.quantity) }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button class="btn btn-sm btn-link p-0 text-decoration-none mt-2 toggle-items"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#moreItems{{ order.id }}"
+                                aria-expanded="false"
+                                aria-controls="moreItems{{ order.id }}">
+                            <i class="fas fa-chevron-down me-1"></i>Xem thêm {{
+                            orders_details[order.id].order_items|length - 1 }} món
+                        </button>
+                        {% endif %}
                     </div>
 
                     <!-- Order Summary -->
@@ -195,19 +254,23 @@
                         <label class="form-label fw-medium">Lý do hủy đơn:</label>
                         <div class="list-group">
                             <label class="list-group-item">
-                                <input class="form-check-input me-2" type="radio" name="cancelReason" value="Thay đổi ý định">
+                                <input class="form-check-input me-2" type="radio" name="cancelReason"
+                                       value="Thay đổi ý định">
                                 Thay đổi ý định
                             </label>
                             <label class="list-group-item">
-                                <input class="form-check-input me-2" type="radio" name="cancelReason" value="Đặt nhầm món">
+                                <input class="form-check-input me-2" type="radio" name="cancelReason"
+                                       value="Đặt nhầm món">
                                 Đặt nhầm món
                             </label>
                             <label class="list-group-item">
-                                <input class="form-check-input me-2" type="radio" name="cancelReason" value="Thời gian giao hàng quá lâu">
+                                <input class="form-check-input me-2" type="radio" name="cancelReason"
+                                       value="Thời gian giao hàng quá lâu">
                                 Thời gian giao hàng quá lâu
                             </label>
                             <label class="list-group-item">
-                                <input class="form-check-input me-2" type="radio" name="cancelReason" value="Tìm thấy nhà hàng khác">
+                                <input class="form-check-input me-2" type="radio" name="cancelReason"
+                                       value="Tìm thấy nhà hàng khác">
                                 Tìm thấy nhà hàng khác
                             </label>
                             <label class="list-group-item">
@@ -218,7 +281,8 @@
                     </div>
                     <div class="mb-3" id="customReasonContainer" style="display: none;">
                         <label for="customReason" class="form-label">Vui lòng mô tả lý do:</label>
-                        <textarea class="form-control" id="customReason" rows="3" placeholder="Nhập lý do hủy đơn hàng của bạn..."></textarea>
+                        <textarea class="form-control" id="customReason" rows="3"
+                                  placeholder="Nhập lý do hủy đơn hàng của bạn..."></textarea>
                     </div>
                 </form>
             </div>
@@ -234,76 +298,116 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Xử lý hiển thị ô nhập lý do tùy chỉnh
-        document.querySelectorAll('input[name="cancelReason"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                const customReasonContainer = document.getElementById('customReasonContainer');
-                if (this.value === 'other') {
-                    customReasonContainer.style.display = 'block';
+
+        // Xử lý nút xem thêm món ăn
+        document.querySelectorAll('.toggle-items').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const icon = this.querySelector('i');
+                if (icon.classList.contains('fa-chevron-down')) {
+                    icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+                    this.innerHTML = this.innerHTML.replace('Xem thêm', 'Ẩn bớt');
                 } else {
-                    customReasonContainer.style.display = 'none';
+                    icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+                    this.innerHTML = this.innerHTML.replace('Ẩn bớt', 'Xem thêm');
                 }
             });
         });
 
-        // Xử lý mở modal khi click nút hủy
-        document.querySelectorAll('.btn-cancel-order').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const orderId = this.dataset.orderId;
-                document.getElementById('cancelOrderId').value = orderId;
-
-                // Reset form
-                document.getElementById('cancelReasonForm').reset();
-                document.getElementById('customReasonContainer').style.display = 'none';
-
-                // Hiển thị modal
-                const cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
-                cancelModal.show();
+            // Xử lý hiển thị ô nhập lý do tùy chỉnh
+            document.querySelectorAll('input[name="cancelReason"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const customReasonContainer = document.getElementById('customReasonContainer');
+                    if (this.value === 'other') {
+                        customReasonContainer.style.display = 'block';
+                    } else {
+                        customReasonContainer.style.display = 'none';
+                    }
+                });
             });
-        });
 
-        // Xử lý xác nhận hủy đơn hàng
-        document.getElementById('confirmCancel').addEventListener('click', function() {
-            const orderId = document.getElementById('cancelOrderId').value;
-            const selectedReason = document.querySelector('input[name="cancelReason"]:checked');
+            // Xử lý mở modal khi click nút hủy
+            document.querySelectorAll('.btn-cancel-order').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const orderId = this.dataset.orderId;
+                    document.getElementById('cancelOrderId').value = orderId;
 
-            if (!selectedReason) {
-                alert('Vui lòng chọn lý do hủy đơn hàng');
-                return;
-            }
+                    // Reset form
+                    document.getElementById('cancelReasonForm').reset();
+                    document.getElementById('customReasonContainer').style.display = 'none';
 
-            let cancelReason = selectedReason.value;
-            if (cancelReason === 'other') {
-                cancelReason = document.getElementById('customReason').value.trim();
-                if (!cancelReason) {
-                    alert('Vui lòng nhập lý do hủy đơn hàng');
+                    // Hiển thị modal
+                    const cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
+                    cancelModal.show();
+                });
+            });
+
+            // Xử lý xác nhận hủy đơn hàng
+            document.getElementById('confirmCancel').addEventListener('click', function() {
+                const orderId = document.getElementById('cancelOrderId').value;
+                const selectedReason = document.querySelector('input[name="cancelReason"]:checked');
+
+                if (!selectedReason) {
+                    alert('Vui lòng chọn lý do hủy đơn hàng');
                     return;
                 }
-            }
 
-            // Gửi yêu cầu hủy đơn hàng
-            fetch(`/customer/cancel_order/${orderId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({ reason: cancelReason })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Đóng modal và reload trang
-                    const cancelModal = bootstrap.Modal.getInstance(document.getElementById('cancelModal'));
-                    cancelModal.hide();
-                    location.reload();
-                } else {
-                    alert('Có lỗi xảy ra: ' + data.message);
+                let cancelReason = selectedReason.value;
+                if (cancelReason === 'other') {
+                    cancelReason = document.getElementById('customReason').value.trim();
+                    if (!cancelReason) {
+                        alert('Vui lòng nhập lý do hủy đơn hàng');
+                        return;
+                    }
                 }
-            })
-            .catch(error => {
-                alert('Có lỗi xảy ra: ' + error);
+
+                // Gửi yêu cầu hủy đơn hàng
+                fetch(`/customer/cancel_order/${orderId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ reason: cancelReason })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Đóng modal và reload trang
+                        const cancelModal = bootstrap.Modal.getInstance(document.getElementById('cancelModal'));
+                        cancelModal.hide();
+                        location.reload();
+                    } else {
+                        alert('Có lỗi xảy ra: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('Có lỗi xảy ra: ' + error);
+                });
+            });
+        });
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate progress bars on page load
+        const progressBars = document.querySelectorAll('.progress-bar');
+        progressBars.forEach(bar => {
+            // Trigger reflow to restart animation
+            bar.style.width = '0';
+            setTimeout(() => {
+                bar.style.width = bar.getAttribute('aria-valuenow') + '%';
+            }, 100);
+        });
+
+        // Add hover effects to steps
+        const steps = document.querySelectorAll('.step');
+        steps.forEach(step => {
+            step.addEventListener('mouseenter', () => {
+                if (step.classList.contains('active')) {
+                    step.style.transform = 'scale(1.1)';
+                }
+            });
+
+            step.addEventListener('mouseleave', () => {
+                step.style.transform = 'scale(1)';
             });
         });
     });
@@ -455,6 +559,57 @@
     .order-card[data-status="cancelled"] .status-badge {
         background-color: #f8d7da;
         color: #721c24;
+    }
+
+    /* Thêm style cho nút xem thêm */
+.toggle-items {
+    color: #4e54c8;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.toggle-items:hover {
+    color: #8f94fb;
+}
+
+    /* Progress bar animations */
+    .progress-bar-animated {
+        transition: width 0.8s ease-in-out;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+
+
+    /* Enhanced step styling */
+    .step {
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .step.active .step-icon {
+        animation: bounce 0.5s ease;
+    }
+
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+        40% {transform: translateY(-10px);}
+        60% {transform: translateY(-5px);}
+    }
+
+
+    .step-icon {
+        position: relative;
+        z-index: 2;
+        transition: all 0.3s ease;
+    }
+
+    .step.active .step-icon {
+        box-shadow: 0 0 15px rgba(78, 84, 200, 0.4);
     }
 </style>
 {% endblock %}

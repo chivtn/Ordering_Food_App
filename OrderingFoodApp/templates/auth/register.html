@@ -1,66 +1,527 @@
+<!-- register.html -->
 {% extends "layout/base.html" %}
 
-{% block title %}Đăng ký tài khoản{% endblock %}
+{% block title %}Đăng ký tài khoản - Hệ Thống Đặt Món Ăn Trực Tuyến{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <h2 class="mb-4">Tạo tài khoản mới</h2>
+<div class="auth-container">
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h2>Tạo tài khoản mới</h2>
+                <p>Tham gia cùng chúng tôi để khám phá thế giới ẩm thực đa dạng</p>
+            </div>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
             {% for category, message in messages %}
-            <div class="alert alert-{{ category }}">{{ message }}</div>
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
             {% endfor %}
             {% endif %}
             {% endwith %}
 
-            <form method="POST">
-                <div class="mb-3">
-                    <label for="name" class="form-label">Họ tên</label>
-                    <input type="text" class="form-control" id="name" name="name" required>
+            <form method="POST" class="auth-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name" class="form-label">Họ tên</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-user"></i>
+                            <input type="text" class="form-control" id="name" name="name" required placeholder="Nhập họ và tên">
+                        </div>
+                    </div>
                 </div>
 
-                <div class="mb-3">
+                <div class="form-group">
                     <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="email" name="email" required>
+                    <div class="input-with-icon">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" class="form-control" id="email" name="email" required placeholder="Nhập địa chỉ email">
+                    </div>
                 </div>
 
-                <div class="mb-3">
+                <div class="form-group">
                     <label for="password" class="form-label">Mật khẩu</label>
-                    <input type="password" class="form-control" id="password" name="password" required>
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" class="form-control" id="password" name="password" required placeholder="Tạo mật khẩu mới">
+                        <button type="button" class="toggle-password" aria-label="Hiển thị mật khẩu">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="password-strength">
+                        <div class="strength-bar">
+                            <div class="strength-fill"></div>
+                        </div>
+                        <span class="strength-text">Mật khẩu yếu</span>
+                    </div>
                 </div>
 
-                <div class="mb-3">
+                <div class="form-group">
                     <label for="role" class="form-label">Vai trò</label>
-                    <select class="form-select" id="role" name="role" required>
-                        <option value="">-- Chọn vai trò --</option>
-                        <option value="CUSTOMER">Khách hàng</option>
-                        <option value="OWNER">Chủ nhà hàng</option>
-                    </select>
+                    <div class="input-with-icon">
+                        <i class="fas fa-user-tag"></i>
+                        <select class="form-select" id="role" name="role" required>
+                            <option value="">-- Chọn vai trò --</option>
+                            <option value="CUSTOMER">Khách hàng</option>
+                            <option value="OWNER">Chủ nhà hàng</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div class="text-center mt-3">
-                    <button type="submit" class="btn btn-primary">Đăng ký</button>
+                <div class="form-check terms-check">
+                    <input type="checkbox" class="form-check-input" id="terms" required>
+                    <label class="form-check-label" for="terms">Tôi đồng ý với <a href="#">Điều khoản dịch vụ</a> và <a href="#">Chính sách bảo mật</a></label>
                 </div>
-                <div class="text-center mt-3">
-                    <a href="{{ url_for('auth.login') }}">Đã có tài khoản? Đăng nhập</a>
-                </div>
+
+                <button type="submit" class="btn-auth btn-primary">Đăng ký</button>
             </form>
+
+            <div class="auth-divider">
+                <span>Hoặc đăng ký với</span>
+            </div>
+            
+            <div class="social-login">
+                <button class="btn-social btn-google">
+                    <i class="fab fa-google"></i>
+                    Google
+                </button>
+                <button class="btn-social btn-facebook">
+                    <i class="fab fa-facebook-f"></i>
+                    Facebook
+                </button>
+            </div>
+            
+            <div class="auth-footer">
+                <p>Đã có tài khoản? <a href="{{ url_for('auth.login') }}">Đăng nhập ngay</a></p>
+            </div>
+        </div>
+        
+        <div class="auth-decoration">
+            <div class="decoration-content">
+                <h3>Bắt đầu hành trình ẩm thực của bạn</h3>
+                <p>Khám phá các nhà hàng đa dạng và đặt món ăn yêu thích một cách dễ dàng</p>
+                <div class="benefits-list">
+                    <div class="benefit-item">
+                        <i class="fas fa-shipping-fast"></i>
+                        <span>Giao hàng nhanh chóng</span>
+                    </div>
+                    <div class="benefit-item">
+                        <i class="fas fa-tags"></i>
+                        <span>Ưu đãi đặc biệt</span>
+                    </div>
+                    <div class="benefit-item">
+                        <i class="fas fa-utensils"></i>
+                        <span>Hàng ngàn món ăn</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <style>
-    .btn-primary{
-    background-color: #0d6efd;
+:root {
+    --primary: #4CAF50;
+    --primary-dark: #388E3C;
+    --secondary: #8BC34A;
+    --dark: #1B5E20;
+    --light: #F1F8E9;
+    --gray: #C8E6C9;
+    --text: #2E7D32;
+    --text-light: #689F38;
+    --success: #4CAF50;
+    --danger: #F44336;
+    --warning: #FFC107;
+}
+
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.auth-wrapper {
+    display: flex;
+    max-width: 1000px;
+    width: 100%;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.auth-card {
+    flex: 1;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.auth-decoration {
+    flex: 1;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: white;
+    padding: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.decoration-content {
+    z-index: 2;
+    position: relative;
+}
+
+.decoration-content h3 {
+    font-size: 28px;
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+
+.decoration-content p {
+    font-size: 16px;
+    opacity: 0.9;
+    margin-bottom: 30px;
+}
+
+.benefits-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.benefit-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.benefit-item i {
+    background: rgba(255, 255, 255, 0.2);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.auth-header h2 {
+    color: var(--dark);
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.auth-header p {
+    color: var(--text-light);
+    font-size: 16px;
+}
+
+.auth-form {
+    margin-bottom: 25px;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    flex: 1;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.input-with-icon {
+    position: relative;
+}
+
+.input-with-icon i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-light);
+    z-index: 2;
+}
+
+.input-with-icon .form-control,
+.input-with-icon .form-select {
+    padding-left: 45px;
+    border-radius: 10px;
+    height: 50px;
+    border: 1px solid var(--gray);
+    transition: all 0.3s;
+    width: 100%;
+}
+
+.input-with-icon .form-control:focus,
+.input-with-icon .form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.2);
+}
+
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
     border: none;
-    color: #fff;
-  }
-  .btn-primary:hover{
-    background-color: #0b5ed7;
-  }
+    color: var(--text-light);
+    cursor: pointer;
+}
+
+.password-strength {
+    margin-top: 8px;
+}
+
+.strength-bar {
+    height: 5px;
+    background: var(--gray);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.strength-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--danger);
+    border-radius: 3px;
+    transition: all 0.3s;
+}
+
+.strength-text {
+    font-size: 12px;
+    color: var(--text-light);
+}
+
+.terms-check {
+    margin-bottom: 20px;
+}
+
+.terms-check .form-check-label {
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.terms-check a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.terms-check a:hover {
+    text-decoration: underline;
+}
+
+.btn-auth {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(78, 205, 196, 0.3);
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    margin: 25px 0;
+    color: var(--text-light);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--gray);
+}
+
+.auth-divider span {
+    padding: 0 15px;
+    font-size: 14px;
+}
+
+.social-login {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.btn-social {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--gray);
+    background: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-google:hover {
+    border-color: #DB4437;
+    color: #DB4437;
+}
+
+.btn-facebook:hover {
+    border-color: #4267B2;
+    color: #4267B2;
+}
+
+.auth-footer {
+    text-align: center;
+    color: var(--text-light);
+}
+
+.auth-footer a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.auth-footer a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .auth-wrapper {
+        flex-direction: column;
+    }
+
+    .auth-decoration {
+        display: none;
+    }
+
+    .auth-card {
+        padding: 30px 20px;
+    }
+
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+}
+
+.auth-decoration {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+}
+
+.btn-primary {
+    background: var(--primary);
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    box-shadow: 0 5px 15px rgba(30, 136, 229, 0.3); /* Blue shadow */
+}
+
+.input-with-icon .form-control:focus,
+.input-with-icon .form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.2); /* Blue focus shadow */
+}
 
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle password visibility
+    const togglePassword = document.querySelector('.toggle-password');
+    const passwordInput = document.getElementById('password');
+    
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // Toggle icon
+            const icon = this.querySelector('i');
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+        });
+    }
+    
+    // Password strength indicator
+    const passwordField = document.getElementById('password');
+    const strengthFill = document.querySelector('.strength-fill');
+    const strengthText = document.querySelector('.strength-text');
+    
+    if (passwordField && strengthFill && strengthText) {
+        passwordField.addEventListener('input', function() {
+            const password = this.value;
+            let strength = 0;
+            
+            if (password.length > 0) {
+                // Length check
+                if (password.length > 5) strength += 20;
+                if (password.length > 8) strength += 20;
+                
+                // Character variety checks
+                if (/[A-Z]/.test(password)) strength += 20;
+                if (/[0-9]/.test(password)) strength += 20;
+                if (/[^A-Za-z0-9]/.test(password)) strength += 20;
+                
+                // Cap at 100
+                strength = Math.min(strength, 100);
+            }
+            
+            strengthFill.style.width = strength + '%';
+            
+            // Update text and color
+            if (strength === 0) {
+                strengthText.textContent = 'Mật khẩu yếu';
+                strengthFill.style.background = '#E53E3E';
+            } else if (strength < 60) {
+                strengthText.textContent = 'Mật khẩu trung bình';
+                strengthFill.style.background = '#ECC94B';
+            } else {
+                strengthText.textContent = 'Mật khẩu mạnh';
+                strengthFill.style.background = '#48BB78';
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

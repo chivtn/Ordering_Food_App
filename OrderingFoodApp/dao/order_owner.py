@@ -8,7 +8,8 @@ from OrderingFoodApp.models import Order, OrderItem, User, Restaurant, db, Notif
 from sqlalchemy import func, and_, or_
 from datetime import datetime, timedelta
 from sqlalchemy.exc import SQLAlchemyError
-
+from flask import render_template
+from threading import Thread
 
 def send_async_email(app, msg):
     """Gửi email bất đồng bộ"""
@@ -102,50 +103,74 @@ class OrderDAO:
         return status_map.get(status.value, status.value)
 
     @staticmethod
+    @staticmethod
     def update_order_status(order_id, status, rj_reason=None):
-        order = Order.query.get(order_id)
-        if not order:
-            return False
+        try:
+            order = Order.query.get(order_id)
+            if not order:
+                return False
 
-        # Kiểm tra luồng chuyển trạng thái hợp lệ
-        valid_transitions = {
-            'pending': ['confirmed', 'cancelled'],
-            'confirmed': ['preparing'],
-            'preparing': ['delivered'],
-            'delivered': ['completed']
-        }
+            # Convert string status to OrderStatus enum
+            try:
+                status_enum = OrderStatus(status)
+            except ValueError:
+                return False
 
-        current_status = order.status.value
-        if status not in valid_transitions.get(current_status, []):
-            return False
+            # Validate status transitions
+            valid_transitions = {
+                OrderStatus.PENDING: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+                OrderStatus.CONFIRMED: [OrderStatus.PREPARING],
+                OrderStatus.PREPARING: [OrderStatus.DELIVERED],
+                OrderStatus.DELIVERED: [OrderStatus.COMPLETED]
+            }
 
+            if status_enum not in valid_transitions.get(order.status, []):
+                return False
 
+            order.status = status_enum
+            if status_enum == OrderStatus.CANCELLED and rj_reason:
+                order.rj_reason = rj_reason
 
-        order.status = status
-        if status == 'cancelled' and rj_reason:
-            order.rj_reason = rj_reason
-        db.session.commit()
+            # Create notification message
+            status_messages = {
+                'confirmed': f"Đơn hàng #{order.id} đã được xác nhận",
+                'preparing': f"Đơn hàng #{order.id} đang được chuẩn bị",
+                'delivered': f"Đơn hàng #{order.id} đang trên đường giao đến bạn",
+                'completed': f"Đơn hàng #{order.id} đã hoàn thành",
+                'cancelled': f"Đơn hàng #{order.id} đã bị huỷ. Lý do: {rj_reason or 'Không có lý do'}"
+            }
 
-        # Tạo thông báo cho khách hàng
-        status_messages = {
-            'confirmed': f"Đơn hàng #{order.id} đã được xác nhận",
-            'preparing': f"Đơn hàng #{order.id} đang được chuẩn bị",
-            'delivered': f"Đơn hàng #{order.id} đang trên đường giao đến bạn",
-            'completed': f"Đơn hàng #{order.id} đã hoàn thành",
-            'cancelled': f"Đơn hàng #{order.id} đã bị huỷ. Lý do: {rj_reason or 'Không có lý do'}"
-        }
+            if status in status_messages:
+                notification = Notification(
+                    user_id=order.customer_id,
+                    type=NotificationType.ORDER_STATUS,
+                    message=status_messages[status],
+                    is_read=False
+                )
+                db.session.add(notification)
 
-        if status in status_messages:
-            notification = Notification(
-                user_id=order.customer_id,
-                type=NotificationType.ORDER_STATUS,
-                message=status_messages[status],
-                is_read=False
-            )
-            db.session.add(notification)
+            # Single commit for both operations
             db.session.commit()
 
-        return True
+            # Send email notifications (non-blocking)
+            try:
+                customer = User.query.get(order.customer_id)
+                if customer and customer.email:
+                    send_order_status_email(order, status, customer.email)
+
+                    if status == 'cancelled':
+                        restaurant_owner = order.restaurant.owner
+                        if restaurant_owner and restaurant_owner.email:
+                            send_order_status_email(order, status, restaurant_owner.email)
+            except Exception as e:
+                current_app.logger.error(f"Email sending failed: {str(e)}")
+
+            return True
+
+        except Exception as e:
+            current_app.logger.error(f"Order status update error: {str(e)}")
+            db.session.rollback()
+            return False
 
     @staticmethod
     def get_order_details(order_id):
@@ -399,3 +424,82 @@ def get_total_revenue(status=OrderStatus.COMPLETED):
     except SQLAlchemyError as e:
         print(f"Error calculating total revenue: {e}")
         return 0.0
+
+
+# Add this function to send emails asynchronously
+def send_async_email(app, msg):
+    with app.app_context():
+        try:
+            mail.send(msg)
+            current_app.logger.info(f"Email sent successfully to {msg.recipients}")
+        except Exception as e:
+            current_app.logger.error(f"Failed to send email: {str(e)}")
+
+
+# Update the send_order_email function
+def send_order_email(to, subject, template_name, **template_args):
+    try:
+        html_content = render_template(f'emails/{template_name}', **template_args)
+
+        msg = Message(
+            subject,
+            recipients=[to],
+            html=html_content,
+            sender=current_app.config['MAIL_DEFAULT_SENDER']
+        )
+
+        # Send email asynchronously
+        Thread(target=send_async_email, args=(current_app._get_current_object(), msg)).start()
+        return True
+    except Exception as e:
+        current_app.logger.error(f"Failed to prepare email: {str(e)}")
+        return False
+
+
+# Add this new function to send order status emails
+def send_order_status_email(order, status, recipient_email):
+    status_display = OrderDAO.get_status_display(OrderStatus(status))
+
+    # Use different templates for different statuses
+    if status == 'cancelled':
+        template_name = "order_cancelled_customer.html"
+        subject = f"Đơn hàng #{order.id} đã bị hủy"
+    else:
+        template_name = "order_status_update.html"
+        subject = f"Order #{order.id} Status Update"
+
+    send_order_email(
+        to=recipient_email,
+        subject=f"Order #{order.id} Status Update",
+        template_name=template_name,
+        order=order,
+        status=status,
+        status_display=status_display,
+        update_time=datetime.now()
+    )
+
+
+# Add this function to send order creation emails to customers
+def send_order_confirmation_email(order, recipient_email):
+    order_items = OrderItem.query.filter_by(order_id=order.id).all()
+
+    send_order_email(
+        to=recipient_email,
+        subject=f"Order Confirmation #{order.id}",
+        template_name="order_created_customer.html",
+        order=order,
+        order_items=order_items
+    )
+
+
+# Add this function to send order creation emails to restaurant owners
+def send_new_order_owner_email(order, recipient_email):
+    order_items = OrderItem.query.filter_by(order_id=order.id).all()
+
+    send_order_email(
+        to=recipient_email,
+        subject=f"New Order #{order.id}",
+        template_name="order_created_owner.html",
+        order=order,
+        order_items=order_items
+    )

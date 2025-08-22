@@ -461,6 +461,17 @@ def place_order():
         db.session.add(new_payment)
         db.session.commit()
 
+        try:
+            from OrderingFoodApp.dao.order_owner import send_order_confirmation_email, send_new_order_owner_email
+            send_order_confirmation_email(new_order, current_user.email)
+
+            # Also send notification to restaurant owner
+            restaurant_owner = new_order.restaurant.owner
+            if restaurant_owner and restaurant_owner.email:
+                send_new_order_owner_email(new_order, restaurant_owner.email)
+        except Exception as e:
+            current_app.logger.error(f"Failed to send order confirmation emails: {str(e)}")
+
         # Xoá giỏ hàng session
         session_cart = session.get('cart', {})
         for mi, _ in all_items_flat:
@@ -533,6 +544,15 @@ def current_orders():
         OrderStatus.CANCELLED: 'bg-danger text-white'
     }
 
+    # Add progress calculation
+    status_progress = {
+        OrderStatus.PENDING: 10,
+        OrderStatus.CONFIRMED: 30,
+        OrderStatus.PREPARING: 50,
+        OrderStatus.DELIVERED: 70,
+        OrderStatus.COMPLETED: 100
+    }
+
     for order in orders:
         # Lấy các món trong đơn hàng
         order_items = OrderItem.query.filter_by(order_id=order.id).join(MenuItem).all()
@@ -544,7 +564,8 @@ def current_orders():
             'order': order,
             'order_items': order_items,
             'payment': payment,
-            'status_color': status_colors.get(order.status, 'bg-secondary')
+            'status_color': status_colors.get(order.status, 'bg-secondary'),
+            'progress': status_progress.get(order.status, 0)
         }
 
     return render_template('customer/current_orders.html',
@@ -574,6 +595,18 @@ def cancel_order(order_id):
         order.status = OrderStatus.CANCELLED
         order.cancellation_reason = cancellation_reason  # Save the reason
         db.session.commit()
+        # Send cancellation email to customer and restaurant owner
+        try:
+            from OrderingFoodApp.dao.order_owner import send_order_status_email
+            # Notify customer
+            send_order_status_email(order, 'cancelled', current_user.email)
+
+            # Notify restaurant owner
+            restaurant_owner = order.restaurant.owner
+            if restaurant_owner and restaurant_owner.email:
+                send_order_status_email(order, 'cancelled', restaurant_owner.email)
+        except Exception as e:
+            current_app.logger.error(f"Failed to send cancellation emails: {str(e)}")
 
         # Tạo thông báo
         notification = Notification(

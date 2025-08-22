@@ -1,10 +1,14 @@
+<!-- login.html -->
 {% extends 'layout/base.html' %}
-{% block title %}Hệ Thống Đặt Món Ăn Trực Tuyến{% endblock %}
+{% block title %}Hệ Thống Đặt Món Ăn Trực Tuyến - Đăng nhập{% endblock %}
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <h2 class="mb-4">Đăng nhập</h2>
+<div class="auth-container">
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h2>Đăng nhập</h2>
+                <p>Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục</p>
+            </div>
 
             <!-- Hiển thị flash message chỉ khi có lỗi -->
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -20,34 +24,416 @@
             {% endif %}
             {% endwith %}
 
-            <form method="post" action="{{ url_for('auth.login', next=request.args.get('next')) }}">
+            <form method="post" action="{{ url_for('auth.login', next=request.args.get('next')) }}" class="auth-form">
                 <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
-                <div class="mb-3">
+                
+                <div class="form-group">
                     <label for="email" class="form-label">Email</label>
-                    <input type="email" name="email" id="email" class="form-control" required value="">
+                    <div class="input-with-icon">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" name="email" id="email" class="form-control" required value="" placeholder="Nhập địa chỉ email">
+                    </div>
                 </div>
-                <div class="mb-3">
+                
+                <div class="form-group">
                     <label for="password" class="form-label">Mật khẩu</label>
-                    <input type="password" name="password" id="password" class="form-control" required value="">
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" name="password" id="password" class="form-control" required value="" placeholder="Nhập mật khẩu">
+                        <button type="button" class="toggle-password" aria-label="Hiển thị mật khẩu">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="text-center mt-3">
-                    <button type="submit" class="btn btn-primary">Đăng nhập</button>
+                
+                <div class="form-options">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMe">
+                        <label class="form-check-label" for="rememberMe">Ghi nhớ đăng nhập</label>
+                    </div>
+                    <a href="#" class="forgot-link">Quên mật khẩu?</a>
                 </div>
+                
+                <button type="submit" class="btn-auth btn-primary">Đăng nhập</button>
             </form>
 
+            <div class="auth-divider">
+                <span>Hoặc đăng nhập với</span>
+            </div>
+            
+            <div class="social-login">
+                <button class="btn-social btn-google">
+                    <i class="fab fa-google"></i>
+                    Google
+                </button>
+                <button class="btn-social btn-facebook">
+                    <i class="fab fa-facebook-f"></i>
+                    Facebook
+                </button>
+            </div>
+            
+            <div class="auth-footer">
+                <p>Chưa có tài khoản? <a href="{{ url_for('auth.register') }}">Đăng ký ngay</a></p>
+            </div>
+        </div>
+        
+        <div class="auth-decoration">
+            <div class="decoration-content">
+                <h3>Khám phá ẩm thực đa dạng</h3>
+                <p>Hàng ngàn món ăn từ các nhà hàng chất lượng đang chờ bạn khám phá</p>
+                <div class="decoration-images">
+                    <div class="food-img img-1"></div>
+                    <div class="food-img img-2"></div>
+                    <div class="food-img img-3"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <style>
-    .btn-primary{
-    background-color: #0d6efd;
-    border: none;
-    color: #fff;
-  }
-  .btn-primary:hover{
-    background-color: #0b5ed7;
-  }
+:root {
+    --primary: #4CAF50;
+    --primary-dark: #388E3C;
+    --secondary: #8BC34A;
+    --dark: #1B5E20;
+    --light: #F1F8E9;
+    --gray: #C8E6C9;
+    --text: #2E7D32;
+    --text-light: #689F38;
+    --success: #4CAF50;
+    --danger: #F44336;
+    --warning: #FFC107;
+}
 
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.auth-wrapper {
+    display: flex;
+    max-width: 1000px;
+    width: 100%;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.auth-card {
+    flex: 1;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.auth-decoration {
+    flex: 1;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: white;
+    padding: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.decoration-content {
+    z-index: 2;
+    position: relative;
+}
+
+.decoration-content h3 {
+    font-size: 28px;
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+
+.decoration-content p {
+    font-size: 16px;
+    opacity: 0.9;
+    margin-bottom: 30px;
+}
+
+.decoration-images {
+    display: flex;
+    gap: 15px;
+}
+
+.food-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 12px;
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.img-1 {
+    background-image: url('https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80');
+}
+
+.img-2 {
+    background-image: url('https://images.unsplash.com/photo-1565958011703-44f9829ba187?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80');
+    transform: translateY(10px);
+}
+
+.img-3 {
+    background-image: url('https://images.unsplash.com/photo-1484980972926-edee96e0960d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80');
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.auth-header h2 {
+    color: var(--dark);
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.auth-header p {
+    color: var(--text-light);
+    font-size: 16px;
+}
+
+.auth-form {
+    margin-bottom: 25px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.input-with-icon {
+    position: relative;
+}
+
+.input-with-icon i {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-light);
+    z-index: 2;
+}
+
+.input-with-icon .form-control {
+    padding-left: 45px;
+    border-radius: 10px;
+    height: 50px;
+    border: 1px solid var(--gray);
+    transition: all 0.3s;
+}
+
+.input-with-icon .form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
+}
+
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+}
+
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.form-check {
+    display: flex;
+    align-items: center;
+}
+
+.form-check-input {
+    margin-right: 8px;
+}
+
+.forgot-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s;
+}
+
+.forgot-link:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.btn-auth {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    margin: 25px 0;
+    color: var(--text-light);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--gray);
+}
+
+.auth-divider span {
+    padding: 0 15px;
+    font-size: 14px;
+}
+
+.social-login {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.btn-social {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--gray);
+    background: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-google:hover {
+    border-color: #DB4437;
+    color: #DB4437;
+}
+
+.btn-facebook:hover {
+    border-color: #4267B2;
+    color: #4267B2;
+}
+
+.auth-footer {
+    text-align: center;
+    color: var(--text-light);
+}
+
+.auth-footer a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.auth-footer a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .auth-wrapper {
+        flex-direction: column;
+    }
+    
+    .auth-decoration {
+        display: none;
+    }
+    
+    .auth-card {
+        padding: 30px 20px;
+    }
+}
+
+.auth-decoration {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+}
+
+.btn-primary {
+    background: var(--primary);
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    box-shadow: 0 5px 15px rgba(30, 136, 229, 0.3); /* Blue shadow */
+}
+
+.input-with-icon .form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.2); /* Blue focus shadow */
+}
+
+.forgot-link {
+    color: var(--primary);
+}
+
+.forgot-link:hover {
+    color: var(--primary-dark);
+}
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle password visibility
+    const togglePassword = document.querySelector('.toggle-password');
+    const passwordInput = document.getElementById('password');
+    
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // Toggle icon
+            const icon = this.querySelector('i');
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+        });
+    }
+});
+</script>
 {% endblock %}

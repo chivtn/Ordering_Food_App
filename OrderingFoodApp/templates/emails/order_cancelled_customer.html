@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Đơn hàng bị hủy</title>
+</head>
+<body>
+    <h2>Đơn hàng #{{ order.id }} đã bị hủy</h2>
+    <p>Kính gửi quý khách,</p>
+    <p>Chúng tôi rất tiếc phải thông báo rằng đơn hàng #{{ order.id }} của bạn đã bị hủy.</p>
+
+    {% if order.rj_reason %}
+    <p><strong>Lý do hủy từ nhà hàng:</strong> {{ order.rj_reason }}</p>
+    {% endif %}
+
+    <p>Thông tin đơn hàng:</p>
+    <ul>
+        <li>Mã đơn: #{{ order.id }}</li>
+        <li>Nhà hàng: {{ order.restaurant.name }}</li>
+        <li>Tổng tiền: {{ "{:,.0f}₫".format(order.total_amount) }}</li>
+        <li>Thời gian đặt: {{ order.created_at.strftime('%H:%M %d/%m/%Y') }}</li>
+    </ul>
+
+    <p>Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi.</p>
+    <p>Trân trọng,<br>Đội ngũ OrderingFood</p>
+</body>
+</html>
