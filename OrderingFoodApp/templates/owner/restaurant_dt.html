@@ -5,28 +5,6 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3><i class="fas fa-store me-2"></i>{{ restaurant.name }}</h3>
-<!--        <div class="card shadow-sm mt-4">-->
-<!--            <div class="card-header bg-info text-white">-->
-<!--                <i class="fas fa-bell me-2"></i>Cài đặt thông báo-->
-<!--            </div>-->
-<!--            <div class="card-body">-->
-<!--                <form method="post"-->
-<!--                      action="{{ url_for('owner.update_notification_settings', restaurant_id=restaurant.id) }}">-->
-<!--                    <div class="mb-3 form-check">-->
-<!--                        <input type="checkbox" class="form-check-input" id="email_notifications"-->
-<!--                               name="email_notifications"-->
-<!--                               {% if restaurant.email_notifications %}checked{% endif %}>-->
-<!--                        <label class="form-check-label" for="email_notifications">Nhận thông báo qua Email</label>-->
-<!--                    </div>-->
-<!--                    <div class="mb-3 form-check">-->
-<!--                        <input type="checkbox" class="form-check-input" id="sms_notifications" name="sms_notifications"-->
-<!--                               {% if restaurant.sms_notifications %}checked{% endif %}>-->
-<!--                        <label class="form-check-label" for="sms_notifications">Nhận thông báo qua SMS</label>-->
-<!--                    </div>-->
-<!--                    <button type="submit" class="btn btn-primary">Lưu cài đặt</button>-->
-<!--                </form>-->
-<!--            </div>-->
-<!--        </div>-->
         <div>
             <a href="{{ url_for('owner.edit_restaurant', restaurant_id=restaurant.id) }}"
                class="btn btn-outline-secondary me-2">
