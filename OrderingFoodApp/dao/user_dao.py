@@ -70,6 +70,7 @@ def get_user_by_email(email):
         print(f"Error fetching user by email {email}: {e}")
         return None
 
+
 # ==TEST 1==
 # def add_user(name, email, password, role_str="customer"):
 #     """
@@ -108,7 +109,7 @@ def get_user_by_email(email):
 #         db.session.rollback()
 #         return None
 
-def add_user(name, email, password, role_input): # Đổi tên tham số để tránh nhầm lẫn
+def add_user(name, email, password, role_input):  # Đổi tên tham số để tránh nhầm lẫn
     """
     Thêm một người dùng mới vào cơ sở dữ liệu.
     Args:
@@ -128,13 +129,13 @@ def add_user(name, email, password, role_input): # Đổi tên tham số để t
                 role_enum = UserRole[role_input.upper()]
             except KeyError:
                 print(f"Invalid role string: {role_input}. Defaulting to CUSTOMER.")
-                role_enum = UserRole.CUSTOMER # Hoặc xử lý lỗi khác tùy ý
+                role_enum = UserRole.CUSTOMER  # Hoặc xử lý lỗi khác tùy ý
         elif isinstance(role_input, UserRole):
-            role_enum = role_input # Nếu đã là đối tượng UserRole, sử dụng trực tiếp
+            role_enum = role_input  # Nếu đã là đối tượng UserRole, sử dụng trực tiếp
         else:
             # Xử lý trường hợp role_input không hợp lệ
             print(f"Invalid role type: {type(role_input)}. Defaulting to CUSTOMER.")
-            role_enum = UserRole.CUSTOMER # Hoặc raise ValueError("Invalid role type")
+            role_enum = UserRole.CUSTOMER  # Hoặc raise ValueError("Invalid role type")
 
         hashed_password = generate_password_hash(password)
 
@@ -229,6 +230,7 @@ def update_user(user_id, **kwargs):
             return False
     return False
 
+
 def delete_user(user_id):
     """
     Xóa một người dùng khỏi cơ sở dữ liệu.
@@ -249,6 +251,7 @@ def delete_user(user_id):
         print(f"Error deleting user {user_id}: {e}")
         return False
 
+
 # OrderingFoodApp/dao/user_dao.py
 # ... (các imports và hàm hiện có) ...
 
@@ -267,4 +270,11 @@ def count_users_by_role(role=None):
         return query.count()
     except SQLAlchemyError as e:
         print(f"Error counting users by role: {e}")
-        return 0 # Trả về 0 nếu có lỗi
+        return 0  # Trả về 0 nếu có lỗi
+
+
+def count_users():
+    """
+    Đếm tổng số người dùng trong hệ thống.
+    """
+    return db.session.query(User).count()

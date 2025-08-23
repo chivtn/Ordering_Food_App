@@ -1,9 +1,87 @@
 {% extends "layout/base.html" %}
-{% block title %}Trang chủ - Admin{% endblock %}
-{% block content %}
-<div class="container mt-5">
-    <h3>⚙️ Xin chào {{ user.name }}</h3>
-    <p>Đây là trang quản trị hệ thống.</p>
-</div>
-{% endblock %}
+{% block title %}Trang chủ Admin{% endblock %}
 
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Chào mừng bạn đến với trang quản trị!</h2>
+
+    <!-- Tổng quan -->
+<div class="container mt-4">
+    <h3 class="mb-4">Thống kê tổng quan</h3>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-header">Người dùng</div>
+                <div class="card-body">
+                    <h4 class="card-title">{{ total_users }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-header">Nhà hàng</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ total_restaurants }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-header">Mã khuyến mãi</div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ total_promos }}</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Biểu đồ doanh thu theo tháng -->
+    <div class="mt-5">
+        <h4>Doanh thu theo tháng</h4>
+        <canvas id="revenueChart" width="400" height="150"></canvas>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    const revenueChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ revenue_labels|tojson }},
+            datasets: [{
+                label: 'Doanh thu (VNĐ)',
+                data: {{ revenue_values|tojson }},
+                borderColor: 'rgba(54, 162, 235, 1)',   // ✅ màu viền
+                backgroundColor: 'rgba(54, 162, 235, 0.2)', // ✅ vùng dưới đường
+                borderWidth: 2,
+                tension: 0.3,  // ✅ bo tròn đường
+                fill: true     // ✅ tô màu dưới đường
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toLocaleString("vi-VN");
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + context.raw.toLocaleString("vi-VN") + ' VNĐ';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

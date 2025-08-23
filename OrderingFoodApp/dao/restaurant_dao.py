@@ -166,6 +166,15 @@ def reject_restaurant(restaurant_id, reason):
         return True
     return False
 
+from OrderingFoodApp.models import Restaurant, db
+
+def count_restaurants():
+    """
+    Đếm tổng số nhà hàng trong hệ thống.
+    """
+    return db.session.query(Restaurant).count()
+
+
 
 # Có thể thêm các hàm DAO khác liên quan đến nhà hàng tại đây, ví dụ:
 # - get_restaurants_by_owner(owner_id)

@@ -8,12 +8,13 @@ from flask import make_response
 
 from OrderingFoodApp.dao.restaurant_dao import *
 from OrderingFoodApp.models import *
-from OrderingFoodApp.dao import user_dao, restaurant_dao, order_owner, reports_dao
+from OrderingFoodApp.dao import user_dao, restaurant_dao, order_owner, reports_dao, promo_code_dao
 import io
 import pandas as pd
 from flask import send_file
 from datetime import datetime
 import csv
+from sqlalchemy import func, extract
 
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -23,7 +24,33 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 @login_required
 def index():
     admin = User.query.filter_by(id=current_user.id).first()
-    return render_template('admin/index.html', user=admin)
+    total_users = user_dao.count_users()
+    total_restaurants = restaurant_dao.count_restaurants()
+    total_promos = promo_code_dao.count_promos()
+
+    # Gọi hàm lấy dữ liệu doanh thu theo tháng
+    revenue_by_month = (
+        db.session.query(
+            extract('month', Order.created_at).label('month'),
+            extract('year', Order.created_at).label('year'),
+            func.sum(Payment.amount).label('revenue')
+        )
+        .join(Payment, Payment.order_id == Order.id)
+        .group_by('year', 'month')
+        .order_by('year', 'month')
+        .all()
+    )
+
+    # Chuyển sang list label & value cho Chart.js
+    labels = [f"{int(row.month):02d}/{int(row.year)}" for row in revenue_by_month]
+    values = [float(row.revenue) for row in revenue_by_month]
+
+    return render_template('admin/index.html',
+                           total_users=total_users,
+                           total_restaurants=total_restaurants,
+                           total_promos=total_promos,
+                           revenue_labels=labels,
+                           revenue_values=values)
 
 
 def admin_required(f):

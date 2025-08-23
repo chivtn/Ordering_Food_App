@@ -1,7 +1,7 @@
 from datetime import datetime
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from sqlalchemy.orm import aliased
-from OrderingFoodApp.models import db, User, UserRole, Restaurant, PromoCode
+from OrderingFoodApp.models import db, User, UserRole, Restaurant, PromoCode, Order, Payment, PaymentStatus
 
 
 def count_users_by_month(start_date: datetime, end_date: datetime):
@@ -122,3 +122,18 @@ def get_promo_stats_by_type():
         func.count(PromoCode.id)
     ).group_by(PromoCode.discount_type).all()
 
+def get_monthly_revenue():
+    results = db.session.query(
+        extract('year', Order.created_at).label('year'),
+        extract('month', Order.created_at).label('month'),
+        func.sum(Payment.amount).label('revenue')
+    ).join(Payment, Order.id == Payment.order_id)\
+     .filter(Payment.status == PaymentStatus.SUCCESS)\
+     .group_by('year', 'month')\
+     .order_by('year', 'month')\
+     .all()
+
+    print("Monthly Revenue Raw Data:")
+    for row in results:
+        print(f"Month: {row.month}, Year: {row.year}, Revenue: {row.revenue:.2f}")
+    return results

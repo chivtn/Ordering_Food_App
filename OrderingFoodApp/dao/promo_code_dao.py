@@ -1,6 +1,8 @@
 from OrderingFoodApp import db
 from OrderingFoodApp.models import PromoCode
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import func
+
 
 def get_all_promo_codes():
     return PromoCode.query.order_by(PromoCode.created_at.desc()).all()
@@ -30,3 +32,6 @@ def delete_promo_code(promo_id):
             db.session.rollback()
             print(f"Lỗi xóa mã khuyến mãi: {e}")
     return False
+
+def count_promos():
+    return db.session.query(func.count(PromoCode.id)).scalar()
