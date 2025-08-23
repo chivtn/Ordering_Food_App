@@ -5,9 +5,13 @@ from OrderingFoodApp import db
 from flask import request
 from datetime import datetime
 from datetime import datetime, timedelta
+from math import radians, cos, sin, asin, sqrt
+
+from OrderingFoodApp.routes import customer
+
 
 # Tìm kiếm nhà hàng theo TÊN NHÀ HÀNG
-def get_restaurants_by_name(search_query, page, per_page=12, sort_by='default'):
+def get_restaurants_by_name(search_query, page, per_page=12, sort_by='default', user_lat=None, user_lon=None):
     # Build base query
     query = db.session.query(
         Restaurant,
@@ -21,6 +25,33 @@ def get_restaurants_by_name(search_query, page, per_page=12, sort_by='default'):
     # Apply sorting
     if sort_by == 'rating':
         query = query.order_by(func.coalesce(func.avg(Review.rating), 0.0).desc())
+    elif sort_by == 'distance' and user_lat is not None and user_lon is not None:
+        restaurants_with_rating = query.all()
+        for restaurant, avg_rating in restaurants_with_rating:
+            if restaurant.latitude and restaurant.longitude:
+                restaurant.distance = haversine(user_lat, user_lon,
+                                                restaurant.latitude, restaurant.longitude)
+            else:
+                restaurant.distance = None
+            restaurant.avg_rating = round(avg_rating, 1) if avg_rating else 0.0
+
+        restaurants_with_rating = sorted(
+            restaurants_with_rating,
+            key=lambda r: (r[0].distance is None, r[0].distance if r[0].distance is not None else 1e12))
+        # paginate thủ công
+
+        start, end = (page - 1) * per_page, page * per_page
+        paginated_items = restaurants_with_rating[start:end]
+        restaurants = [r[0] for r in paginated_items]
+        price_ranges = get_restaurant_price_ranges([r.id for r in restaurants])
+        for r in restaurants:
+            r.min_price, r.max_price = price_ranges.get(r.id, (0, 0))
+        return {
+            'restaurants': restaurants,
+            'page': page,
+            'per_page': per_page,
+            'total': len(restaurants_with_rating)
+        }
     else:
         query = query.order_by(Restaurant.id)
 
@@ -48,7 +79,7 @@ def get_restaurants_by_name(search_query, page, per_page=12, sort_by='default'):
         'restaurants': results,
         'page': page,
         'per_page': per_page,
-        'total': restaurants.total
+        'total': restaurants.total,
     }
 
 # Tìm món ăn chứa từ khóa, kèm theo thông tin nhà hàng
@@ -81,7 +112,7 @@ def get_menu_items_by_name(search_query, page, per_page=12):
     }
 
 # Tính điểm trung bình cho mỗi nhà hàng
-def get_restaurants_by_category(category_id, page, per_page=12, sort_by='default'):
+def get_restaurants_by_category(category_id, page, per_page=12, sort_by='default', user_lat=None, user_lon=None):
     # Build base query
     query = db.session.query(
         Restaurant,
@@ -95,6 +126,37 @@ def get_restaurants_by_category(category_id, page, per_page=12, sort_by='default
     # Apply sorting
     if sort_by == 'rating':
         query = query.order_by(func.coalesce(func.avg(Review.rating), 0.0).desc())
+    elif sort_by == 'distance' and user_lat is not None and user_lon is not None:
+        restaurants_with_rating = query.all()
+        for restaurant, avg_rating in restaurants_with_rating:
+            if restaurant.latitude and restaurant.longitude:
+                restaurant.distance = haversine(user_lat, user_lon,
+                                                restaurant.latitude, restaurant.longitude)
+            else:
+                restaurant.distance = None
+            restaurant.avg_rating = round(avg_rating, 1) if avg_rating else 0.0
+
+        # Sắp xếp theo distance
+        restaurants_with_rating = sorted(
+            restaurants_with_rating,
+            key=lambda r: (r[0].distance is None, r[0].distance if r[0].distance is not None else 1e12))
+
+        # Phân trang thủ công
+        start, end = (page - 1) * per_page, page * per_page
+        paginated_items = restaurants_with_rating[start:end]
+        restaurants = [r[0] for r in paginated_items]
+
+        # Tính price range
+        price_ranges = get_restaurant_price_ranges([r.id for r in restaurants])
+        for r in restaurants:
+            r.min_price, r.max_price = price_ranges.get(r.id, (0, 0))
+
+        return {
+            'restaurants': restaurants,
+            'page': page,
+            'per_page': per_page,
+            'total': len(restaurants_with_rating)
+        }
     else:
         query = query.order_by(Restaurant.id)
 
@@ -127,7 +189,7 @@ def get_restaurants_by_category(category_id, page, per_page=12, sort_by='default
     }
 
 
-def get_all_restaurants(page, per_page=12, sort_by='default'):
+def get_all_restaurants(page, per_page=12, sort_by='default', user_lat=None, user_lon=None):
     # Build base query
     query = db.session.query(
         Restaurant,
@@ -158,6 +220,44 @@ def get_all_restaurants(page, per_page=12, sort_by='default'):
 
         query = query.join(subquery, Restaurant.id == subquery.c.restaurant_id) \
             .order_by(subquery.c.max_price.desc())
+
+
+    elif sort_by == 'distance' and user_lat is not None and user_lon is not None:
+        # Nếu sắp xếp theo khoảng cách và có tọa độ người dùng
+        # Lấy tất cả nhà hàng và tính toán khoảng cách trong Python
+        restaurants_with_rating = query.all()
+        for restaurant, avg_rating in restaurants_with_rating:
+            if restaurant.latitude and restaurant.longitude:
+                restaurant.distance = haversine(user_lat, user_lon, restaurant.latitude, restaurant.longitude)
+            else:
+                restaurant.distance = None  # Đặt khoảng cách = none nếu không có tọa độ
+        # Sắp xếp danh sách trong Python theo khoảng cách
+        restaurants_with_rating = sorted(
+            restaurants_with_rating,
+            key=lambda r: (r[0].distance is None, r[0].distance if r[0].distance is not None else 1e12))
+
+        # Phân trang thủ công trên danh sách đã sắp xếp
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_items = restaurants_with_rating[start:end]
+        # Trả về kết quả
+        restaurants = [r[0] for r in paginated_items]
+        # Bổ sung các thông tin khác
+        price_ranges = get_restaurant_price_ranges([r.id for r in restaurants])
+        for (res_obj, avg_rating) in [(r[0], r[1]) for r in paginated_items]:
+            res_obj.avg_rating = round(avg_rating, 1) if avg_rating else 0.0
+            # Gán min/max để template dùng
+            min_price, max_price = price_ranges.get(res_obj.id, (0, 0))
+            res_obj.min_price = min_price
+            res_obj.max_price = max_price
+            res_obj.is_open = customer.is_restaurant_open(res_obj)
+
+        return {
+            'restaurants': restaurants,
+            'page': page,
+            'per_page': per_page,
+            'total': len(restaurants_with_rating)  # Tổng số nhà hàng
+        }
     else:
         query = query.order_by(Restaurant.id)
 
@@ -324,6 +424,19 @@ def _is_open_now(opening, closing, now):
         return opening <= now < closing
     else:
         return now >= opening or now < closing
+
+
+def haversine(lat1, lon1, lat2, lon2):
+    # Chuyển độ sang radian
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    # Tính khoảng cách
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    r = 6371  # Bán kính Trái Đất (km)
+    return c * r
+
 
 # customer_service.py
 # def send_sms(to_phone, message):
