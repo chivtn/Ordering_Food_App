@@ -44,6 +44,8 @@
                     tôi</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('owner.owner_menu') }}">Quản lý thực đơn</a>
                 </li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('owner.owner_promos') }}">Mã khuyến mãi</a>
+                </li>
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('owner.owner_orders') }}">Đơn hàng</a></li>
                 <li class="nav-item"><a class="nav-link" href="/owner/reviews">Đánh giá</a></li>
 
@@ -127,42 +129,66 @@
 <style>
     /* Nút */
     .btn {
-          border-radius: 12px;
-          font-weight: 600;
-          transition: all 0.3s ease;
-      }
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
 
-      .btn-primary {
-          background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
-          border: none;
-      }
+    .btn-primary {
+        background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+        border: none;
+    }
 
-      .btn-primary:hover {
-          background: linear-gradient(135deg, var(--secondary), var(--gradient-end));
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
-      }
+    .btn-primary:hover {
+        background: linear-gradient(135deg, var(--secondary), var(--gradient-end));
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+    }
 
-      .btn-disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-      }
+    .btn-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 
     /* System header */
     .system-header {
-      background: linear-gradient(90deg, #28a745, #218838);
-      color: #fff;
+        background: linear-gradient(90deg, #28a745, #218838);
+        color: #fff;
     }
-    .system-header h1 { font-size: 1.25rem; margin: 0; }
+
+    .system-header h1 {
+        font-size: 1.25rem;
+        margin: 0;
+    }
 
     /* Avatar button */
     .avatar-btn {
-      width: 42px; height: 42px; border-radius: 50%;
-      overflow: hidden; display: flex; align-items: center; justify-content: center;
-      color: #fff; border: 2px solid #fff; transition: transform .2s, box-shadow .2s;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        border: 2px solid #fff;
+        transition: transform .2s, box-shadow .2s;
     }
-    .avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
-    .avatar-btn:hover { transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,.15); }
 
-    .dropdown-item i { width: 1.2rem; text-align: center; color: #777; }
+    .avatar-btn img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .avatar-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, .15);
+    }
+
+    .dropdown-item i {
+        width: 1.2rem;
+        text-align: center;
+        color: #777;
+    }
 </style>

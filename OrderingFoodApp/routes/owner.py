@@ -15,6 +15,8 @@ import os
 from OrderingFoodApp.dao.menu_owner import MenuDAO
 from flask import current_app
 from sqlalchemy import func
+import unicodedata
+
 
 from OrderingFoodApp.models import RestaurantApprovalStatus
 
@@ -574,10 +576,314 @@ def toggle_menu_item_status(item_id):
         return jsonify({'success': False, 'message': 'Có lỗi xảy ra'})
 
 
+@owner_bp.route('/promos')
+@login_required
+def owner_promos():
+    # Lấy danh sách nhà hàng đã duyệt của owner
+    restaurants = _owner_approved_restaurants()
+    if not restaurants:
+        flash('Bạn chưa có nhà hàng nào được duyệt', 'warning')
+        return redirect(url_for('owner.index'))
+
+    restaurant_id = request.args.get('restaurant_id', type=int)
+    q = request.args.get('q', '').strip()
+
+    # Nếu không chọn nhà hàng -> mặc định nhà hàng đầu tiên
+    if not restaurant_id:
+        restaurant_id = restaurants[0].id
+
+    # Bảo vệ quyền truy cập
+    if restaurant_id not in [r.id for r in restaurants]:
+        flash('Bạn không có quyền xem mã khuyến mãi của nhà hàng này', 'danger')
+        return redirect(url_for('owner.owner_promos'))
+
+    query = PromoCode.query.filter(PromoCode.restaurant_id == restaurant_id)
+    if q:
+        like = f"%{q}%"
+        query = query.filter(func.upper(PromoCode.code).like(func.upper(like)))
+
+    promos = query.order_by(PromoCode.created_at.desc()).all()
+
+    return render_template(
+        'owner/promos/list.html',   # tạm thời; sau có thể tái dùng template admin
+        promos=promos,
+        restaurants=restaurants,
+        current_restaurant_id=restaurant_id,
+        q=q
+    )
+
+@owner_bp.route('/promos/add', methods=['GET', 'POST'])
+@login_required
+def owner_promos_add():
+    restaurants = _owner_approved_restaurants()
+    if not restaurants:
+        flash('Bạn chưa có nhà hàng nào được duyệt', 'warning')
+        return redirect(url_for('owner.index'))
+
+    if request.method == 'POST':
+        try:
+            restaurant_id = int(request.form.get('restaurant_id', 0))
+            code = (request.form.get('code') or '').strip().upper()
+            description = request.form.get('description') or ''
+            discount_type_str = (request.form.get('discount_type') or '').strip().lower()
+            discount_type = DiscountType.PERCENT if discount_type_str == 'percent' else DiscountType.FIXED
+            discount_value = request.form.get('discount_value')
+            start_date = _parse_dt(request.form.get('start_date') or '')
+            end_date = _parse_dt(request.form.get('end_date') or '')
+            usage_limit_raw = request.form.get('usage_limit', '').strip()
+            usage_limit = int(usage_limit_raw) if usage_limit_raw else None
+
+            # Kiểm tra nhà hàng thuộc owner
+            restaurant = Restaurant.query.get(restaurant_id)
+            if not restaurant or restaurant.owner_id != current_user.id or restaurant.approval_status != RestaurantApprovalStatus.APPROVED:
+                flash('Nhà hàng không hợp lệ hoặc chưa được duyệt', 'danger')
+                return redirect(url_for('owner.owner_promos_add'))
+
+            # Ràng buộc prefix 2 ký tự
+            ok, msg = _validate_code_prefix(code, restaurant)
+            if not ok:
+                flash(msg, 'danger')
+                return redirect(url_for('owner.owner_promos_add'))
+
+            # Ràng buộc giảm giá
+            ok, msg = _validate_discount(discount_type, discount_value)
+            if not ok:
+                flash(msg, 'danger')
+                return redirect(url_for('owner.owner_promos_add'))
+
+            # Ngày
+            if start_date >= end_date:
+                flash('Ngày kết thúc phải sau ngày bắt đầu', 'danger')
+                return redirect(url_for('owner.owner_promos_add'))
+
+            if usage_limit is not None and usage_limit <= 0:
+                flash('Giới hạn lượt dùng phải > 0', 'danger')
+                return redirect(url_for('owner.owner_promos_add'))
+
+            # Unique code (không phân biệt hoa thường)
+            existed = PromoCode.query.filter(func.upper(PromoCode.code) == code).first()
+            if existed:
+                flash('Mã đã tồn tại', 'danger')
+                return redirect(url_for('owner.owner_promos_add'))
+
+            # Upload ảnh (tuỳ chọn)
+            image_url = None
+            if 'image' in request.files:
+                image_file = request.files['image']
+                if image_file and allowed_file(image_file.filename):
+                    filename = secure_filename(image_file.filename)
+                    upload_folder = os.path.join(current_app.root_path, 'static/uploads/promos')
+                    os.makedirs(upload_folder, exist_ok=True)
+                    filepath = os.path.join(upload_folder, filename)
+                    image_file.save(filepath)
+                    image_url = f'/static/uploads/promos/{filename}'
+
+            promo = PromoCode(
+                code=code,
+                description=description,
+                discount_type=discount_type,
+                discount_value=discount_value,
+                start_date=start_date,
+                end_date=end_date,
+                usage_limit=usage_limit,
+                image_url=image_url,
+                restaurant_id=restaurant_id
+            )
+            db.session.add(promo)
+            db.session.commit()
+
+            flash('Tạo mã khuyến mãi thành công', 'success')
+            return redirect(url_for('owner.owner_promos', restaurant_id=restaurant_id))
+
+        except ValueError as ve:
+            db.session.rollback()
+            flash(f'Lỗi dữ liệu: {ve}', 'danger')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Có lỗi xảy ra: {str(e)}', 'danger')
+
+    # GET
+    return render_template(
+        'owner/promos/form.html',
+        restaurants=restaurants,
+        promo=None
+    )
+
+@owner_bp.route('/promos/<int:promo_id>/edit', methods=['GET', 'POST'])
+@login_required
+def owner_promos_edit(promo_id):
+    promo = PromoCode.query.get(promo_id)
+    if not _promo_belongs_to_owner(promo):
+        flash('Mã không tồn tại hoặc bạn không có quyền', 'danger')
+        return redirect(url_for('owner.owner_promos'))
+
+    restaurant = Restaurant.query.get(promo.restaurant_id)
+
+    if request.method == 'POST':
+        try:
+            code = (request.form.get('code') or '').strip().upper()
+            description = request.form.get('description') or ''
+            discount_type_str = (request.form.get('discount_type') or '').strip().lower()
+            discount_type = DiscountType.PERCENT if discount_type_str == 'percent' else DiscountType.FIXED
+            discount_value = request.form.get('discount_value')
+            start_date = _parse_dt(request.form.get('start_date') or '')
+            end_date = _parse_dt(request.form.get('end_date') or '')
+            usage_limit_raw = request.form.get('usage_limit', '').strip()
+            usage_limit = int(usage_limit_raw) if usage_limit_raw else None
+
+            ok, msg = _validate_code_prefix(code, restaurant)
+            if not ok:
+                flash(msg, 'danger')
+                return redirect(url_for('owner.owner_promos_edit', promo_id=promo.id))
+
+            ok, msg = _validate_discount(discount_type, discount_value)
+            if not ok:
+                flash(msg, 'danger')
+                return redirect(url_for('owner.owner_promos_edit', promo_id=promo.id))
+
+            if start_date >= end_date:
+                flash('Ngày kết thúc phải sau ngày bắt đầu', 'danger')
+                return redirect(url_for('owner.owner_promos_edit', promo_id=promo.id))
+
+            if usage_limit is not None and usage_limit <= 0:
+                flash('Giới hạn lượt dùng phải > 0', 'danger')
+                return redirect(url_for('owner.owner_promos_edit', promo_id=promo.id))
+
+            # Unique code (bỏ qua chính nó)
+            existed = PromoCode.query.filter(
+                func.upper(PromoCode.code) == code,
+                PromoCode.id != promo.id
+            ).first()
+            if existed:
+                flash('Mã đã tồn tại', 'danger')
+                return redirect(url_for('owner.owner_promos_edit', promo_id=promo.id))
+
+            # Upload ảnh (optional)
+            if 'image' in request.files:
+                image_file = request.files['image']
+                if image_file and allowed_file(image_file.filename):
+                    filename = secure_filename(image_file.filename)
+                    upload_folder = os.path.join(current_app.root_path, 'static/uploads/promos')
+                    os.makedirs(upload_folder, exist_ok=True)
+                    filepath = os.path.join(upload_folder, filename)
+                    image_file.save(filepath)
+                    promo.image_url = f'/static/uploads/promos/{filename}'
+
+            # Update fields
+            promo.code = code
+            promo.description = description
+            promo.discount_type = discount_type
+            promo.discount_value = discount_value
+            promo.start_date = start_date
+            promo.end_date = end_date
+            promo.usage_limit = usage_limit
+
+            db.session.commit()
+            flash('Cập nhật mã khuyến mãi thành công', 'success')
+            return redirect(url_for('owner.owner_promos', restaurant_id=promo.restaurant_id))
+
+        except ValueError as ve:
+            db.session.rollback()
+            flash(f'Lỗi dữ liệu: {ve}', 'danger')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Có lỗi xảy ra: {str(e)}', 'danger')
+
+    # GET
+    restaurants = _owner_approved_restaurants()
+    return render_template(
+        'owner/promos/form.html',
+        restaurants=restaurants,
+        promo=promo
+    )
+
+@owner_bp.route('/promos/<int:promo_id>/delete', methods=['POST'])
+@login_required
+def owner_promos_delete(promo_id):
+    promo = PromoCode.query.get(promo_id)
+    if not _promo_belongs_to_owner(promo):
+        flash('Mã không tồn tại hoặc bạn không có quyền', 'danger')
+        return redirect(url_for('owner.owner_promos'))
+
+    try:
+        rid = promo.restaurant_id
+        db.session.delete(promo)
+        db.session.commit()
+        flash('Đã xóa mã khuyến mãi', 'success')
+        return redirect(url_for('owner.owner_promos', restaurant_id=rid))
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Không thể xóa mã: {str(e)}', 'danger')
+        return redirect(url_for('owner.owner_promos'))
+
+
 def allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}
 
+# ====HUY VO=====
+def _owner_approved_restaurants():
+    """Lấy danh sách nhà hàng đã APPROVED của current owner."""
+    return Restaurant.query.filter_by(
+        owner_id=current_user.id,
+        approval_status=RestaurantApprovalStatus.APPROVED
+    ).all()
+
+def _normalize_text(s: str) -> str:
+    # Bỏ dấu tiếng Việt để lấy prefix ổn định
+    nfkd = unicodedata.normalize('NFKD', s or '')
+    return ''.join(ch for ch in nfkd if not unicodedata.combining(ch))
+
+def _restaurant_prefix(restaurant: Restaurant) -> str:
+    """
+    Tạo prefix 2 ký tự đại diện cho nhà hàng.
+    Ưu tiên 2 chữ cái đầu không dấu trong tên. Nếu thiếu, lấy tiếp ký tự chữ-số.
+    """
+    base = _normalize_text(restaurant.name).upper()
+    letters = [c for c in base if c.isalpha()]
+    if len(letters) >= 2:
+        return ''.join(letters[:2])
+    # fallback: lấy 2 ký tự chữ-số đầu tiên
+    alnum = [c for c in base if c.isalnum()]
+    return ''.join((alnum + ['X', 'X'])[:2])  # luôn đủ 2 ký tự
+
+def _parse_dt(s: str):
+    """Parse datetime từ input <input type='datetime-local'> hoặc chuỗi phổ biến."""
+    for fmt in ('%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M', '%Y-%m-%d'):
+        try:
+            dt = datetime.strptime(s.strip(), fmt)
+            # nếu chỉ có ngày, set giờ = 00:00
+            if fmt == '%Y-%m-%d':
+                return datetime(dt.year, dt.month, dt.day, 0, 0)
+            return dt
+        except Exception:
+            pass
+    raise ValueError('Định dạng ngày giờ không hợp lệ')
+
+def _validate_discount(discount_type, discount_value):
+    """Ràng buộc giảm giá: percent ≤ 50, giá trị > 0."""
+    try:
+        val = float(discount_value)
+    except Exception:
+        return False, 'Giá trị giảm không hợp lệ'
+    if val <= 0:
+        return False, 'Giá trị giảm phải > 0'
+    if discount_type == DiscountType.PERCENT and val > 50:
+        return False, 'Giảm theo phần trăm không được vượt quá 50%'
+    return True, None
+
+def _validate_code_prefix(code: str, restaurant: Restaurant):
+    want = _restaurant_prefix(restaurant)
+    if not code or not code.upper().startswith(want):
+        return False, f"Mã phải bắt đầu bằng tiền tố của nhà hàng: '{want}'"
+    return True, None
+
+def _promo_belongs_to_owner(promo: PromoCode) -> bool:
+    if not promo or not promo.restaurant_id:
+        return False
+    rest = Restaurant.query.get(promo.restaurant_id)
+    return bool(rest and rest.owner_id == current_user.id)
+# ====HUY VO=====
 
 ### ORDER
 @owner_bp.route('/orders', methods=['GET', 'POST'])
