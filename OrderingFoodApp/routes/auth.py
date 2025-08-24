@@ -2,6 +2,8 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, logout_user, login_required, current_user
+
+from OrderingFoodApp import oauth
 from OrderingFoodApp.models import db, User, UserRole
 from urllib.parse import urlparse, urljoin
 
@@ -144,5 +146,44 @@ def logout():
     session.pop('checkout_data', None)
     return redirect(url_for('customer.index'))
 
+# ======= Google Login =======
+from OrderingFoodApp.models import User, db, UserRole
+from authlib.integrations.flask_client import OAuth
+from flask import current_app
 
+# Route login Google
+# ======= Google Login =======
+@auth_bp.route('/login/google')
+def login_google():
+    google = oauth.create_client('google')
+    redirect_uri = url_for('auth.google_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+
+@auth_bp.route('/auth/google/callback')
+def google_callback():
+    # Lấy access token
+    token = oauth.google.fetch_access_token(
+        authorization_response=request.url,
+        redirect_uri=url_for("auth.google_callback", _external=True)
+    )
+
+    # Gọi API lấy thông tin user
+    resp = oauth.google.get("https://www.googleapis.com/oauth2/v2/userinfo", token=token)
+    user_info = resp.json()
+
+    email = user_info.get("email")
+    name = user_info.get("name", email.split("@")[0])
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        user = User(name=name, email=email, role=UserRole.CUSTOMER)
+        db.session.add(user)
+        db.session.commit()
+
+    login_user(user)
+    _merge_guest_cart_to_db(user)
+
+    flash("Đăng nhập Google thành công!", "success")
+    return redirect(url_for("customer.index"))
 

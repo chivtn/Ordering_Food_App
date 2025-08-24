@@ -61,7 +61,7 @@ class User(db.Model, UserMixin):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False)
     email = Column(String(100), unique=True, nullable=False)
-    password = Column(String(255), nullable=False)
+    password = Column(String(255), nullable=True)
     role = Column(Enum(UserRole), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     # ─── MỚI ──────────────────────────────
@@ -70,6 +70,10 @@ class User(db.Model, UserMixin):
     phone = Column(String(20), nullable=True)
     # Quan hệ với Address
     addresses = relationship('Address', backref='user', lazy=True)
+    # ─── OAuth ───
+    google_id = Column(String(255), unique=True, nullable=True)
+    oauth_provider = Column(String(50), nullable=True)
+    avatar_url = Column(String(255), nullable=True)
 
     def set_password(self, password):
         self.password = generate_password_hash(password)

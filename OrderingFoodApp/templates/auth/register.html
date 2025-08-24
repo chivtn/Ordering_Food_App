@@ -84,9 +84,10 @@
             </div>
             
             <div class="social-login">
-                <button class="btn-social btn-google">
+                <a href="{{ url_for('auth.login_google') }}" class="btn-social btn-google">
                     <i class="fab fa-google"></i>
                     Google
+                </a>
                 </button>
                 <button class="btn-social btn-facebook">
                     <i class="fab fa-facebook-f"></i>

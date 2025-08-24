@@ -1,0 +1,96 @@
+{% extends 'layout/base.html' %}
+{% block title %}{{ 'Chỉnh sửa' if promo else 'Thêm' }} Mã Khuyến Mãi{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">{{ 'Chỉnh sửa' if promo else 'Thêm' }} Mã Khuyến Mãi</h2>
+
+    <form method="POST" enctype="multipart/form-data"
+          action="{% if promo %}{{ url_for('owner.owner_promos_edit', promo_id=promo.id) }}{% else %}{{ url_for('owner.owner_promos_add') }}{% endif %}">
+
+        <!-- Chọn nhà hàng -->
+        <div class="mb-3">
+            <label class="form-label">Nhà hàng *</label>
+            <select class="form-select" name="restaurant_id" required {% if promo %}disabled{% endif %}>
+                {% for r in restaurants %}
+                <option value="{{ r.id }}"
+                    {% if promo and promo.restaurant_id == r.id %}selected{% endif %}>
+                    {{ r.name }}
+                </option>
+                {% endfor %}
+            </select>
+            {% if promo %}
+            <input type="hidden" name="restaurant_id" value="{{ promo.restaurant_id }}">
+            {% endif %}
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Mã khuyến mãi *</label>
+                <input type="text" class="form-control" name="code"
+                       value="{{ promo.code if promo else '' }}" required>
+                <div class="form-text">Mã phải bắt đầu bằng 2 ký tự đại diện cho nhà hàng</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Loại giảm giá *</label>
+                <select class="form-select" name="discount_type" required>
+                    <option value="percent" {% if promo and promo.discount_type.name == 'PERCENT' %}selected{% endif %}>Phần trăm (%)</option>
+                    <option value="fixed" {% if promo and promo.discount_type.name == 'FIXED' %}selected{% endif %}>Số tiền cố định (₫)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Giá trị giảm *</label>
+            <input type="number" class="form-control" name="discount_value"
+                   value="{{ promo.discount_value if promo else '' }}" step="0.01" required>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Ngày bắt đầu *</label>
+                <input type="datetime-local" class="form-control" name="start_date"
+                       value="{{ promo.start_date.strftime('%Y-%m-%dT%H:%M') if promo else '' }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Ngày kết thúc *</label>
+                <input type="datetime-local" class="form-control" name="end_date"
+                       value="{{ promo.end_date.strftime('%Y-%m-%dT%H:%M') if promo else '' }}" required>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Số lần sử dụng tối đa</label>
+            <input type="number" class="form-control" name="usage_limit"
+                   value="{{ promo.usage_limit if promo else '' }}" placeholder="Không giới hạn nếu để trống">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Mô tả</label>
+            <textarea class="form-control" name="description" rows="3">{{ promo.description if promo else '' }}</textarea>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Ảnh minh họa</label>
+            <input type="file" class="form-control" name="image">
+            {% if promo and promo.image_url %}
+            <div class="mt-2">
+                <img src="{{ promo.image_url }}" alt="Promo Image" style="max-height:100px;">
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3 text-end">
+            <a href="{{ url_for('owner.owner_promos', restaurant_id=promo.restaurant_id if promo else restaurants[0].id) }}"
+               class="btn btn-secondary">
+                Hủy
+            </a>
+            <button type="submit"
+                    class="btn"
+                    style="background-color:#28a745; color:#fff;">
+                {{ 'Lưu thay đổi' if promo else 'Tạo mã' }}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
