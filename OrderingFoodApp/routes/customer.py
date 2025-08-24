@@ -68,9 +68,9 @@ def restaurants_list():
     page = request.args.get('page', 1, type=int)
     per_page = 12
 
-    restaurants = []
-    menu_items = []
-    search_type = request.args.get('search_type', 'restaurants')
+    # Lấy tọa độ vị trí từ request, sử dụng cùng tên biến
+    customer_lat = request.args.get('customer_lat', type=float)
+    customer_lng = request.args.get('customer_lng', type=float)
 
     restaurants = []
     menu_items = []
@@ -83,35 +83,30 @@ def restaurants_list():
             data = dao.get_menu_items_by_name(search_query, page, per_page)
             menu_items = data['menu_items']
         else:
-            # Tìm kiếm NHÀ HÀNG THEO TÊN (sử dụng hàm mới)
-            data = dao.get_restaurants_by_name(search_query, page, per_page, sort_by)
+            # Tìm kiếm NHÀ HÀNG THEO TÊN (truyền thêm tọa độ)
+            data = dao.get_restaurants_by_name(search_query, page, per_page, sort_by, customer_lat, customer_lng)
             restaurants = data['restaurants']
     elif category_id:
-        # Tìm theo danh mục (chỉ áp dụng cho nhà hàng)
-        data = dao.get_restaurants_by_category(category_id, page, per_page, sort_by)
+        # Tìm theo danh mục (truyền thêm tọa độ)
+        data = dao.get_restaurants_by_category(category_id, page, per_page, sort_by, customer_lat, customer_lng)
         restaurants = data['restaurants']
-        search_type = 'restaurants'  # Đảm bảo hiển thị đúng loại
+        search_type = 'restaurants'
     else:
-        data = dao.get_all_restaurants(page, per_page, sort_by)
+        # Lấy tất cả nhà hàng (đã có truyền tọa độ)
+        data = dao.get_all_restaurants(page, per_page, sort_by, customer_lat, customer_lng)
         restaurants = data['restaurants']
-        search_type = 'restaurants'  # Đảm bảo hiển thị đúng loại
+        search_type = 'restaurants'
 
     categories = MenuCategory.query.all()
 
-    # total_pages = (data['total'] + per_page - 1) // per_page
-
-    # THÊM KIỂM TRA KHI KHÔNG CÓ DỮ LIỆU
     if data['total'] == 0:
         total_pages = 0
     else:
         total_pages = (data['total'] + per_page - 1) // per_page
 
-    # Tính toán start_page và end_page CHỈ KHI CÓ TRANG
     if total_pages > 0:
         start_page = max(1, page - 2)
         end_page = min(total_pages, page + 2)
-
-        # Điều chỉnh nếu khoảng trang < 5
         if end_page - start_page < 4:
             if start_page == 1:
                 end_page = min(total_pages, start_page + 4)
@@ -119,13 +114,6 @@ def restaurants_list():
                 start_page = max(1, end_page - 4)
     else:
         start_page = end_page = 0
-
-    # Nếu số trang ít hơn 5, điều chỉnh để hiển thị đủ
-    if end_page - start_page < 4:
-        if start_page == 1:
-            end_page = min(total_pages, start_page + 4)
-        else:
-            start_page = max(1, end_page - 4)
 
     pagination_info = {
         'page': page,
@@ -136,7 +124,6 @@ def restaurants_list():
         'end_page': end_page
     }
 
-    # Lấy danh sách mã khuyến mãi còn hiệu lực
     current_time = datetime.now()
     promos = PromoCode.query.filter(
         PromoCode.start_date <= current_time,
@@ -147,7 +134,6 @@ def restaurants_list():
     for restaurant in restaurants:
         restaurant.is_open = is_restaurant_open(restaurant)
 
-    # Truyền dữ liệu phù hợp với loại tìm kiếm
     if search_type == 'dishes':
         return render_template('customer/restaurants_list.html',
                                menu_items=menu_items,
@@ -156,7 +142,11 @@ def restaurants_list():
                                search_type=search_type,
                                selected_category_id=category_id,
                                pagination=pagination_info,
-                               promos=promos)
+                               promos=promos,
+                               # Truyền thêm các tham số này
+                               customer_lat=customer_lat,
+                               customer_lng=customer_lng,
+                               sort_by=sort_by)
     else:
         return render_template('customer/restaurants_list.html',
                                restaurants=restaurants,
@@ -165,7 +155,11 @@ def restaurants_list():
                                search_type=search_type,
                                selected_category_id=category_id,
                                pagination=pagination_info,
-                               promos=promos)
+                               promos=promos,
+                               # Truyền thêm các tham số này
+                               customer_lat=customer_lat,
+                               customer_lng=customer_lng,
+                               sort_by=sort_by)
 
 
 #Xem menu nhà hàng

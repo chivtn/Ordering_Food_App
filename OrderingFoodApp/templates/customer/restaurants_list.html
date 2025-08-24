@@ -94,6 +94,13 @@
                    class="btn filter-btn {% if sort_by == 'price' %}active{% endif %}">
                     <i class="fas fa-dollar-sign me-2"></i>Theo giá
                 </a>
+                <a href="{{ url_for('customer.restaurants_list',search=search_query,category_id=selected_category_id,
+                sort_by='distance',customer_lat=request.args.get('customer_lat'),customer_lng=request.args.get('customer_lng')) }}"
+                   class="btn filter-btn {% if sort_by == 'distance' %}active{% endif %}"
+                   id="distance-filter-btn">
+                    <i class="fas fa-map-marker-alt me-2"></i>Theo khoảng cách
+                </a>
+
             </div>
         </div>
     </div>
@@ -149,7 +156,18 @@
                                    class="text-decoration-none text-dark fw-medium ms-2">{{ menu_item.restaurant.name
                                     }}
                                 </a>
+
+                                <div class="card-footer bg-transparent border-0 py-2 px-3">
+                                {% if sort_by == 'distance' and restaurant.distance is not none %}
+                                <p class="text-muted small mb-1 text-center">
+                                    <i class="fas fa-route me-1"></i> Cách bạn: {{ "%.2f km" |
+                                    format(restaurant.distance) }}
+                                </p>
+                                {% endif %}
+                                </div>
                             </div>
+
+
 
                             <!-- Nút xem chi tiết món ăn -->
                             <a href="{{ url_for('customer.view_menu_item', menu_item_id=menu_item.id) }}"
@@ -221,6 +239,14 @@
                         {% endif %}
                     </div>
 
+                    <!-- ✅ Hiển thị khoảng cách nếu lọc theo distance -->
+                    {% if sort_by == 'distance' and restaurant.distance is not none %}
+                    <div class="text-center mb-2">
+                        <i class="fas fa-route me-1 text-muted"></i>
+                        <span class="text-muted small">Cách bạn: {{ "%.2f"|format(restaurant.distance) }} km</span>
+                    </div>
+                    {% endif %}
+
                 </div>
                 <div class="card-footer bg-transparent border-0 py-2 px-3">
                     <a href="{{ url_for('customer.restaurant_detail', restaurant_id=restaurant.id) }}"
@@ -257,7 +283,8 @@
                 search=search_query,
                 category_id=selected_category_id,
                 search_type=search_type,
-                sort_by=sort_by) }}">
+                sort_by=sort_by,customer_lat=request.args.get('customer_lat'),
+    customer_lng=request.args.get('customer_lng')) }}">
                     <i class="fas fa-chevron-left"></i>
                 </a>
             </li>
@@ -276,7 +303,9 @@
                 search=search_query,
                 category_id=selected_category_id,
                 search_type=search_type,
-                sort_by=sort_by) }}">
+                sort_by=sort_by,
+                customer_lat=request.args.get('customer_lat'),
+                customer_lng=request.args.get('customer_lng'))}}">
                     {{ p }}
                 </a>
             </li>
@@ -291,7 +320,9 @@
                 search=search_query,
                 category_id=selected_category_id,
                 search_type=search_type,
-                sort_by=sort_by) }}">
+                sort_by=sort_by,
+                customer_lat=request.args.get('customer_lat'),
+                customer_lng=request.args.get('customer_lng'))}}">
                     <i class="fas fa-chevron-right"></i>
                 </a>
             </li>
@@ -612,6 +643,86 @@
 
 </style>
 
+<!--Lấy vị trí người dùng:-->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Cập nhật trạng thái active cho các nút lọc
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentSort = urlParams.get('sort_by') || 'default';
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        filterButtons.forEach(btn => {
+            const href = btn.getAttribute('href');
+            if (href && href.includes(`sort_by=${currentSort}`)) {
+                btn.classList.add('active');
+            }
+        });
+
+        // =============================================
+        // Xử lý LẤY VỊ TRÍ VÀ LỌC THEO KHOẢNG CÁCH
+        // =============================================
+        let userLat = null;
+        let userLng = null;
+        const distanceBtn = document.getElementById('distance-filter-btn');
+
+        if (distanceBtn) {
+            if ("geolocation" in navigator) {
+                // Lấy vị trí ngay khi load trang
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        userLat = position.coords.latitude;
+                        userLng = position.coords.longitude;
+                        console.log(`Vị trí người dùng: ${userLat}, ${userLng}`);
+                        distanceBtn.style.display = 'inline-block';
+                    },
+                    function (error) {
+                        console.error("Lỗi khi lấy vị trí: ", error);
+                        distanceBtn.style.display = 'none';
+                    }
+                );
+            } else {
+                distanceBtn.style.display = 'none';
+            }
+
+            // Sự kiện click nút "Theo khoảng cách"
+            distanceBtn.addEventListener('click', function (event) {
+                event.preventDefault();
+                if (userLat !== null && userLng !== null) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('sort_by', 'distance');
+                    url.searchParams.set('customer_lat', userLat);
+                    url.searchParams.set('customer_lng', userLng);
+                    window.location.href = url.toString();
+                } else {
+                    alert("Đang lấy vị trí của bạn. Vui lòng thử lại sau.");
+                }
+            });
+        }
+    });
+
+    // Giữ customer_lat và customer_lng trong các link (phân trang, lọc)
+    function updateLinksWithLocation() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const customerLat = urlParams.get('customer_lat');
+        const customerLng = urlParams.get('customer_lng');
+
+        if (customerLat && customerLng) {
+            const allLinks = document.querySelectorAll('a[href]');
+            allLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && !href.startsWith('#')) {
+                    const newUrl = new URL(href, window.location.origin);
+                    newUrl.searchParams.set('customer_lat', customerLat);
+                    newUrl.searchParams.set('customer_lng', customerLng);
+                    link.setAttribute('href', newUrl.pathname + newUrl.search);
+                }
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', updateLinksWithLocation);
+</script>
+
+
 <script>
     // Hàm định dạng giá tiền
     function formatPrice(price) {
@@ -622,24 +733,6 @@
 
     // Định dạng số với dấu phân cách hàng nghìn
     return new Intl.NumberFormat('vi-VN').format(rounded) + 'đ';
-    }
-
-    // Hàm cập nhật hiển thị giá
-    function updatePriceDisplay() {
-    document.querySelectorAll('.restaurant-item').forEach(item => {
-    const minPrice = item.dataset.minPrice;
-    const maxPrice = item.dataset.maxPrice;
-
-    if (minPrice && maxPrice) {
-    const priceElement = item.querySelector('.price-range');
-    if (priceElement) {
-    priceElement.innerHTML = `
-    <i class="fas fa-money-bill-wave me-1"></i>
-    <span class="formatted-price">${formatPrice(minPrice)} - ${formatPrice(maxPrice)}</span>
-    `;
-    }
-    }
-    });
     }
 
     // Chạy khi DOM đã tải xong
