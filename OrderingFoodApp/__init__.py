@@ -9,6 +9,8 @@ from authlib.integrations.flask_client import OAuth
 from flask_mail import Mail  # Thêm import Flask-Mail
 import os
 
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 # Load biến môi trường từ .env
 load_dotenv()
 
@@ -16,7 +18,7 @@ load_dotenv()
 db = SQLAlchemy()
 migrate = Migrate()
 login_manager = LoginManager()
-oauth = OAuth()   # 👈 Thêm OAuth
+oauth = OAuth()
 ####
 mail = Mail()  # Khởi tạo Flask-Mail
 
@@ -26,6 +28,12 @@ def init_app():
     Khởi tạo Flask App, tích hợp các extension
     """
     app = Flask(__name__)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+    app.config.update(
+        PREFERRED_URL_SCHEME="https",
+        SESSION_COOKIE_SECURE=True,
+        REMEMBER_COOKIE_SECURE=True,
+    )
 
 
 
@@ -55,7 +63,7 @@ def init_app():
     login_manager.login_view = 'auth.login'
     login_manager.login_message_category = 'info'
     mail.init_app(app)
-    oauth.init_app(app)   # 👈 Thêm OAuth vào app
+    oauth.init_app(app)
 
     # đăng ký Google OAuth tại đây
     oauth.register(
