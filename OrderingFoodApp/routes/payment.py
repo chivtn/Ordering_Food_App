@@ -250,7 +250,7 @@ def _verify_momo_signature(params: dict, signature: str) -> bool:
     return hmac.compare_digest(my_sig, signature or "")
 
 # --- momo_return ---
-PENDING_CODES = {"99", "9000", "1006"}   # tuỳ tài liệu môi trường test
+PENDING_CODES = {"99", "9000", "1006", "7002"}   # tuỳ tài liệu môi trường test
 
 @customer_bp.route('/payment/momo_return')
 def momo_return():
