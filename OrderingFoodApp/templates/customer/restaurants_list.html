@@ -158,15 +158,14 @@
                                 </a>
 
                                 <div class="card-footer bg-transparent border-0 py-2 px-3">
-                                {% if sort_by == 'distance' and restaurant.distance is not none %}
-                                <p class="text-muted small mb-1 text-center">
-                                    <i class="fas fa-route me-1"></i> Cách bạn: {{ "%.2f km" |
-                                    format(restaurant.distance) }}
-                                </p>
-                                {% endif %}
+                                    {% if sort_by == 'distance' and restaurant.distance is not none %}
+                                    <p class="text-muted small mb-1 text-center">
+                                        <i class="fas fa-route me-1"></i> Cách bạn: {{ "%.2f km" |
+                                        format(restaurant.distance) }}
+                                    </p>
+                                    {% endif %}
                                 </div>
                             </div>
-
 
 
                             <!-- Nút xem chi tiết món ăn -->
@@ -218,26 +217,47 @@
                         {{ restaurant.name }}
                     </h5>
 
-                    <!-- Hiển thị điểm số sao màu vàng -->
-                    <div class="d-flex align-items-center justify-content-center mb-2">
+                    <!-- Thay thế phần hiển thị sao và giá bằng code mới -->
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <!-- Hiển thị điểm số sao màu vàng -->
                         <div class="star-rating d-flex align-items-center gap-1">
                             <i class="fas fa-star text-warning"></i>
                             <span class="fw-bold">{{ restaurant.avg_rating }}/5.0</span>
                         </div>
+
+                        <!-- Hiển thị khoảng giá -->
+                        <div class="price-range text-end"
+                             data-min-price="{{ restaurant.min_price }}"
+                             data-max-price="{{ restaurant.max_price }}">
+                            {% if restaurant.min_price and restaurant.max_price %}
+                            <i class="fas fa-money-bill-wave me-1"></i>
+                            <span class="formatted-price">{{ "{:,.0f}".format(restaurant.min_price // 10000 * 10000) }} - {{ "{:,.0f}".format(restaurant.max_price // 10000 * 10000) }}đ</span>
+                            {% else %}
+                            <span class="text-muted">Chưa có giá</span>
+                            {% endif %}
+                        </div>
                     </div>
 
-                    <!-- Add price range display -->
-                    <div class="text-center price-range mb-2"
-                         data-min-price="{{ restaurant.min_price }}"
-                         data-max-price="{{ restaurant.max_price }}">
-                        {% if restaurant.min_price and restaurant.max_price %}
-                        <i class="fas fa-money-bill-wave me-1"></i>
-                        <span class="formatted-price">{{ "{:,.0f}".format(restaurant.min_price // 10000 * 10000) }} - {{ "{:,.0f}".format(restaurant.max_price // 10000 * 10000) }}đ
-                            </span>
-                        {% else %}
-                        Chưa có giá
-                        {% endif %}
-                    </div>
+                    <!--                        &lt;!&ndash; Hiển thị điểm số sao màu vàng &ndash;&gt;-->
+                    <!--                        <div class="d-flex align-items-center justify-content-center mb-2">-->
+                    <!--                            <div class="star-rating d-flex align-items-center gap-1">-->
+                    <!--                                <i class="fas fa-star text-warning"></i>-->
+                    <!--                                <span class="fw-bold">{{ restaurant.avg_rating }}/5.0</span>-->
+                    <!--                            </div>-->
+                    <!--                        </div>-->
+
+                    <!--                        &lt;!&ndash; Add price range display &ndash;&gt;-->
+                    <!--                        <div class="text-center price-range mb-2"-->
+                    <!--                             data-min-price="{{ restaurant.min_price }}"-->
+                    <!--                             data-max-price="{{ restaurant.max_price }}">-->
+                    <!--                            {% if restaurant.min_price and restaurant.max_price %}-->
+                    <!--                            <i class="fas fa-money-bill-wave me-1"></i>-->
+                    <!--                            <span class="formatted-price">{{ "{:,.0f}".format(restaurant.min_price // 10000 * 10000) }} - {{ "{:,.0f}".format(restaurant.max_price // 10000 * 10000) }}đ-->
+                    <!--                            </span>-->
+                    <!--                            {% else %}-->
+                    <!--                            Chưa có giá-->
+                    <!--                            {% endif %}-->
+                    <!--                        </div>-->
 
                     <!-- ✅ Hiển thị khoảng cách nếu lọc theo distance -->
                     {% if sort_by == 'distance' and restaurant.distance is not none %}
@@ -246,6 +266,13 @@
                         <span class="text-muted small">Cách bạn: {{ "%.2f"|format(restaurant.distance) }} km</span>
                     </div>
                     {% endif %}
+
+
+                    <!-- Thêm địa chỉ nhà hàng -->
+                    <p class="card-text text-muted small mb-2 text-truncate" title="{{ restaurant.address }}">
+                        <i class="fas fa-map-marker-alt me-1"></i>{{ restaurant.address }}
+                    </p>
+
 
                 </div>
                 <div class="card-footer bg-transparent border-0 py-2 px-3">
@@ -640,6 +667,11 @@
 .clear-search:hover {
     color: #dc3545;
 }
+    .card-text.address {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
 
 </style>
 
@@ -770,6 +802,11 @@
     url.searchParams.delete('page');
     window.location.href = url.toString();
 }
+    // Thêm sự kiện click cho nút clear
+        const clearSearchBtn = document.querySelector('.clear-search');
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', clearSearch);
+        }
 </script>
 
 {% endblock %}
