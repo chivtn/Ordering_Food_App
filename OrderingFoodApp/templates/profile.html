@@ -16,7 +16,12 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
+                        <input type="email" name="email" class="form-control"
+                               value="{{ user.email }}"
+                               {% if user.google_id %}readonly{% endif %} required>
+                        {% if user.google_id %}
+                        <small class="text-muted">Email được liên kết từ Google, không thể thay đổi.</small>
+                        {% endif %}
                     </div>
                     <!-- Ngày sinh & Giới tính -->
                     <div class="row">
@@ -43,7 +48,13 @@
                         <label class="form-label">Số điện thoại</label>
                         <input type="text" name="phone" class="form-control" value="{{ user.phone or '' }}">
                     </div>
-                    <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                    <div class="mt-4">
+                        <button type="submit" class="btn"
+                                style="background-color:#28a745;
+                                color:#fff;"><i
+                                class="fa-solid fa-save me-2"></i> Lưu thay đổi
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>

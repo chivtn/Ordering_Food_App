@@ -1,0 +1,48 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Hoàn tất đăng ký với Google - Hệ Thống Đặt Món Ăn Trực Tuyến{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-wrapper">
+        <div class="auth-card">
+            <div class="auth-header mb-4">
+                <h2>Hoàn tất đăng ký</h2>
+                <p>Xin chào {{ google_info.name }} ({{ google_info.email }})</p>
+            </div>
+
+            <form method="POST" class="auth-form">
+                <input type="hidden" name="email" value="{{ google_info.email }}">
+                <input type="hidden" name="name" value="{{ google_info.name }}">
+
+                <!-- Số điện thoại -->
+                <div class="form-group mb-4">
+                    <label for="phone" class="form-label d-flex align-items-center">
+                        <i class="fas fa-phone me-2"></i> Số điện thoại
+                    </label>
+                    <input type="text" class="form-control mt-2" id="phone" name="phone" required placeholder="Nhập số điện thoại">
+                </div>
+
+                <!-- Vai trò -->
+                <div class="form-group mb-4">
+                    <label for="role" class="form-label d-flex align-items-center">
+                        <i class="fas fa-user-tag me-2"></i> Vai trò
+                    </label>
+                    <select class="form-select mt-2" id="role" name="role" required>
+                        <option value="CUSTOMER">Khách hàng</option>
+                        <option value="OWNER">Chủ nhà hàng</option>
+                    </select>
+                </div>
+
+                <!-- Nút -->
+                <div class="mt-4">
+                   <button type="submit" class="btn"
+                           style="background-color:#28a745;
+                           color:#fff;"> <i
+                           class="fa-solid fa-plus me-2"></i> Hoàn tất đăng ký </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
