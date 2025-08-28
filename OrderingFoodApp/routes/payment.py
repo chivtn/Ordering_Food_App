@@ -460,6 +460,20 @@ def _vnp_verify(query_params: dict) -> bool:
     calc = _vnp_hash_for_verify(data, secret)
     return bool(recv) and hmac.compare_digest(calc, recv)
 
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+from decimal import Decimal, ROUND_HALF_UP
+import time
+import urllib.parse
+from urllib.parse import urljoin
+
+# helper lấy IP thật khi đứng sau proxy
+def _client_ip():
+    fwd = (request.headers.get('X-Forwarded-For') or '').split(',')
+    if fwd and fwd[0].strip():
+        return fwd[0].strip()
+    return request.remote_addr or "127.0.0.1"
+
 @customer_bp.route('/payment/vnpay/<int:order_id>')
 @login_required
 def vnpay_payment(order_id):
@@ -469,7 +483,8 @@ def vnpay_payment(order_id):
     vnp_tmn    = current_app.config['VNP_TMN_CODE']
     vnp_secret = current_app.config['VNP_HASH_SECRET']
 
-    base = current_app.config.get("EXTERNAL_BASE_URL")
+    # Return/IPN tuyệt đối nếu có EXTERNAL_BASE_URL (PythonAnywhere)
+    base = (current_app.config.get("EXTERNAL_BASE_URL") or "").strip()
     if base:
         vnp_return = urljoin(base, url_for('customer.vnpay_return', _external=False))
         vnp_ipn    = urljoin(base, url_for('customer.vnpay_ipn', _external=False))
@@ -477,45 +492,60 @@ def vnpay_payment(order_id):
         vnp_return = url_for('customer.vnpay_return', _external=True)
         vnp_ipn    = url_for('customer.vnpay_ipn', _external=True)
 
-    # Dùng giờ Việt Nam
-    now_vn   = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
-    expire_vn = now_vn + timedelta(minutes=15)
-    ts_ms = int(time.time() * 1000)
-    txn_ref = f"{order.id}-{ts_ms}"
+    # ====== QUAN TRỌNG: thời gian theo VN (GMT+7) ======
+    vn_tz    = ZoneInfo("Asia/Ho_Chi_Minh")
+    now_vn   = datetime.now(vn_tz)
+    expire_vn = now_vn + timedelta(minutes=15)   # bạn có thể giảm 10’ nếu muốn
 
-    current_app.logger.info(
-        "VNP CHECK now=%s expire=%s tz=Asia/Ho_Chi_Minh TxnRef=%s Return=%s",
-        now_vn.strftime("%Y-%m-%d %H:%M:%S"),
-        expire_vn.strftime("%Y-%m-%d %H:%M:%S"),
-        txn_ref,
-        vnp_return
-    )
+    # TxnRef unique, tránh đụng khi retry
+    txn_ref = f"{order.id}-{int(time.time() * 1000)}"
 
+    # Số tiền: về VND * 100, làm tròn chuẩn nếu là Decimal
+    # (VNPay yêu cầu integer số xu)
+    amt_vnd = Decimal(str(order.total_amount))
+    amt_int = int(amt_vnd.quantize(Decimal('1'), rounding=ROUND_HALF_UP)) * 100
+
+    # IP client: lấy hop đầu tiên từ X-Forwarded-For
+    ip_addr = _client_ip()
+
+    # Build params
     params = {
         "vnp_Version": "2.1.0",
         "vnp_Command": "pay",
         "vnp_TmnCode": vnp_tmn,
-        "vnp_Amount": int(order.total_amount) * 100,
+        "vnp_Amount": amt_int,
         "vnp_CurrCode": "VND",
         "vnp_TxnRef": txn_ref,
         "vnp_OrderInfo": f"Thanh toan don hang #{order.id}",
         "vnp_OrderType": "billpayment",
         "vnp_Locale": "vn",
         "vnp_ReturnUrl": vnp_return,
-        "vnp_IpAddr": request.headers.get('X-Forwarded-For', request.remote_addr or "127.0.0.1"),
+        "vnp_IpAddr": ip_addr,
 
-        # Format theo VN time
+        # BẮT BUỘC: dùng giờ Việt Nam định dạng YYYYMMDDHHMMSS
         "vnp_CreateDate": now_vn.strftime("%Y%m%d%H%M%S"),
         "vnp_ExpireDate": expire_vn.strftime("%Y%m%d%H%M%S"),
 
+        # Có thể để hoặc bỏ – không ảnh hưởng vì khi ký mình đã loại trừ field này
         "vnp_SecureHashType": "HMACSHA512",
     }
 
+    # Ký HMAC512 (đã loại trừ vnp_SecureHash / vnp_SecureHashType trong hàm ký)
     params["vnp_SecureHash"] = _vnp_hash_for_request(params, vnp_secret)
+
+    # Dựng URL thanh toán
     query  = urllib.parse.urlencode(params, doseq=True, safe='')
     pay_url = f"{vnp_url}?{query}"
 
+    current_app.logger.info(
+        "VNP CREATE now=%s expire=%s ip=%s txn=%s return=%s",
+        now_vn.strftime("%Y-%m-%d %H:%M:%S"),
+        expire_vn.strftime("%Y-%m-%d %H:%M:%S"),
+        ip_addr, txn_ref, vnp_return
+    )
+
     return redirect(pay_url)
+
 
 
 @customer_bp.route('/payment/vnpay_return')
