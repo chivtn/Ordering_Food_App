@@ -7,7 +7,7 @@ import hmac, hashlib, requests, json
 import urllib.parse
 import time
 from urllib.parse import urljoin
-
+from zoneinfo import ZoneInfo
 
 from OrderingFoodApp.routes.customer import customer_bp
 
@@ -463,15 +463,12 @@ def _vnp_verify(query_params: dict) -> bool:
 @customer_bp.route('/payment/vnpay/<int:order_id>')
 @login_required
 def vnpay_payment(order_id):
-    # 1) Lấy order TRƯỚC
     order = Order.query.filter_by(id=order_id, customer_id=current_user.id).first_or_404()
 
-    # 2) Lấy cấu hình
     vnp_url    = current_app.config['VNP_API_URL']
     vnp_tmn    = current_app.config['VNP_TMN_CODE']
     vnp_secret = current_app.config['VNP_HASH_SECRET']
 
-    # 3) Build return/ipn cùng host (EXTERNAL_BASE_URL nếu có, ngược lại host hiện tại)
     base = current_app.config.get("EXTERNAL_BASE_URL")
     if base:
         vnp_return = urljoin(base, url_for('customer.vnpay_return', _external=False))
@@ -480,10 +477,11 @@ def vnpay_payment(order_id):
         vnp_return = url_for('customer.vnpay_return', _external=True)
         vnp_ipn    = url_for('customer.vnpay_ipn', _external=True)
 
-    # 4) Tham số giao dịch
-    now = datetime.now()
-    expire = now + timedelta(minutes=15)
-    txn_ref = f"{order.id}-{int(now.timestamp())}"
+    # Dùng giờ Việt Nam
+    now_vn   = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
+    expire_vn = now_vn + timedelta(minutes=15)
+
+    txn_ref = f"{order.id}-{int(now_vn.timestamp())}"
 
     params = {
         "vnp_Version": "2.1.0",
@@ -497,16 +495,19 @@ def vnpay_payment(order_id):
         "vnp_Locale": "vn",
         "vnp_ReturnUrl": vnp_return,
         "vnp_IpAddr": request.headers.get('X-Forwarded-For', request.remote_addr or "127.0.0.1"),
-        "vnp_CreateDate": now.strftime("%Y%m%d%H%M%S"),
-        "vnp_ExpireDate": expire.strftime("%Y%m%d%H%M%S"),
+
+        # Format theo VN time
+        "vnp_CreateDate": now_vn.strftime("%Y%m%d%H%M%S"),
+        "vnp_ExpireDate": expire_vn.strftime("%Y%m%d%H%M%S"),
+
         "vnp_SecureHashType": "HMACSHA512",
     }
 
     params["vnp_SecureHash"] = _vnp_hash_for_request(params, vnp_secret)
-    query = urllib.parse.urlencode(params, doseq=True, safe='')
+    query  = urllib.parse.urlencode(params, doseq=True, safe='')
     pay_url = f"{vnp_url}?{query}"
-    return redirect(pay_url)
 
+    return redirect(pay_url)
 
 
 @customer_bp.route('/payment/vnpay_return')
