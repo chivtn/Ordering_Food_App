@@ -480,8 +480,16 @@ def vnpay_payment(order_id):
     # Dùng giờ Việt Nam
     now_vn   = datetime.now(ZoneInfo("Asia/Ho_Chi_Minh"))
     expire_vn = now_vn + timedelta(minutes=15)
+    ts_ms = int(time.time() * 1000)
+    txn_ref = f"{order.id}-{ts_ms}"
 
-    txn_ref = f"{order.id}-{int(now_vn.timestamp())}"
+    current_app.logger.info(
+        "VNP CHECK now=%s expire=%s tz=Asia/Ho_Chi_Minh TxnRef=%s Return=%s",
+        now_vn.strftime("%Y-%m-%d %H:%M:%S"),
+        expire_vn.strftime("%Y-%m-%d %H:%M:%S"),
+        txn_ref,
+        vnp_return
+    )
 
     params = {
         "vnp_Version": "2.1.0",
