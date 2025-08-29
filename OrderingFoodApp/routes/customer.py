@@ -163,15 +163,6 @@ def restaurants_list():
 
 
 #Xem menu nhà hàng
-def _is_open_now(opening: time, closing: time, now: time) -> bool:
-    if not opening or not closing:
-        return False
-    # Hỗ trợ ca qua đêm: ví dụ 18:00 → 02:00
-    if opening <= closing:
-        return opening <= now < closing
-    else:
-        return now >= opening or now < closing
-
 def get_vietnam_time():
     # Get current time in Vietnam timezone (UTC+7)
     utc_now = datetime.utcnow()
@@ -196,15 +187,17 @@ def is_restaurant_open(restaurant):
 def restaurant_detail(restaurant_id):
     restaurant = Restaurant.query.get_or_404(restaurant_id)
     menu_items = MenuItem.query.filter_by(restaurant_id=restaurant_id).all()
-    now_local = datetime.now().time()  # hoặc dùng timezone nếu có
-    open_now = _is_open_now(restaurant.opening_time, restaurant.closing_time, now_local)
+
+    # Dùng lại hàm is_restaurant_open
+    open_now = is_restaurant_open(restaurant)
+
     return render_template("customer/restaurant_detail.html",
                            restaurant=restaurant,
                            menu_items=menu_items,
                            open_now=open_now)
 
 
-# Xem chi tiết món ăn
+# Route: Xem chi tiết món ăn
 from sqlalchemy.orm import joinedload
 @customer_bp.route("/menu_item/<int:menu_item_id>")
 def view_menu_item(menu_item_id):
@@ -213,10 +206,7 @@ def view_menu_item(menu_item_id):
                  .options(joinedload(MenuItem.restaurant))
                  .get_or_404(menu_item_id))
 
-    now_local = datetime.now().time()  # nếu có timezone, chuyển sang tz địa phương
-    open_now = _is_open_now(menu_item.restaurant.opening_time,
-                            menu_item.restaurant.closing_time,
-                            now_local)
+    open_now = is_restaurant_open(menu_item.restaurant)
 
     return render_template("customer/menu_item_detail.html",
                            menu_item=menu_item,
