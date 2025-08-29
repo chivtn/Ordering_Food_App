@@ -7,7 +7,8 @@
         <!-- Left Column - Order Summary -->
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
-                <div class="card-header bg-transparent py-3" style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; border-radius: 16px 16px 0 0;">
+                <div class="card-header bg-transparent py-3"
+                     style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; border-radius: 16px 16px 0 0;">
                     <h4 class="mb-0"><i class="fas fa-receipt me-2"></i>Thông tin đơn hàng</h4>
                 </div>
                 <div class="card-body p-4">
@@ -15,7 +16,8 @@
                     <div class="d-flex align-items-center mb-4 pb-3 border-bottom">
                         <div class="flex-shrink-0">
                             <img src="{{ (restaurant.image_url if restaurant else 'https://via.placeholder.com/80') }}"
-                                 class="rounded-circle" style="width: 60px; height: 60px; object-fit: cover;" alt="Restaurant">
+                                 class="rounded-circle" style="width: 60px; height: 60px; object-fit: cover;"
+                                 alt="Restaurant">
                         </div>
                         <div class="flex-grow-1 ms-3">
                             <h5 class="mb-1 fw-bold">{{ (restaurant.name if restaurant else 'Nhà hàng') }}</h5>
@@ -29,7 +31,8 @@
                         <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
                             <div class="flex-shrink-0">
                                 <img src="{{ item.image_url }}" alt="{{ item.name }}"
-                                     class="rounded" style="width: 70px; height: 70px; object-fit: cover; border: 2px solid #f8f9fa;">
+                                     class="rounded"
+                                     style="width: 70px; height: 70px; object-fit: cover; border: 2px solid #f8f9fa;">
                             </div>
                             <div class="flex-grow-1 ms-3">
                                 <h6 class="mb-1 fw-bold">{{ item.name }}</h6>
@@ -46,11 +49,11 @@
                         {% endfor %}
                     </div>
 
-<!--                    &lt;!&ndash; Special Instructions &ndash;&gt;-->
-<!--                    <div class="mb-4">-->
-<!--                        <h6 class="mb-3 fw-bold text-uppercase" style="color: #6c5ce7;">Ghi chú đơn hàng</h6>-->
-<!--                        <textarea class="form-control" placeholder="Thêm ghi chú cho nhà hàng (không bắt buộc)" rows="2" style="border-radius: 12px; border: 1px solid #e0e0e0;"></textarea>-->
-<!--                    </div>-->
+                    <!--                    &lt;!&ndash; Special Instructions &ndash;&gt;-->
+                    <!--                    <div class="mb-4">-->
+                    <!--                        <h6 class="mb-3 fw-bold text-uppercase" style="color: #6c5ce7;">Ghi chú đơn hàng</h6>-->
+                    <!--                        <textarea class="form-control" placeholder="Thêm ghi chú cho nhà hàng (không bắt buộc)" rows="2" style="border-radius: 12px; border: 1px solid #e0e0e0;"></textarea>-->
+                    <!--                    </div>-->
                 </div>
             </div>
         </div>
@@ -59,7 +62,8 @@
         <div class="col-lg-4">
             <!-- Order Summary Card -->
             <div class="card border-0 shadow-sm mb-4 sticky-top" style="top: 20px; border-radius: 16px;">
-                <div class="card-header bg-transparent py-3" style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; border-radius: 16px 16px 0 0;">
+                <div class="card-header bg-transparent py-3"
+                     style="background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%); color: white; border-radius: 16px 16px 0 0;">
                     <h4 class="mb-0"><i class="fas fa-credit-card me-2"></i>Thanh toán</h4>
                 </div>
                 <div class="card-body p-4">
@@ -70,7 +74,8 @@
                             <span class="fw-medium">{{ "{:,.0f} đ".format(total_price) }}</span>
                         </div>
 
-                        <div class="d-flex justify-content-between mb-2" id="discountInfo" style="display: none !important;">
+                        <div class="d-flex justify-content-between mb-2" id="discountInfo"
+                             style="display: none !important;">
                             <span class="text-muted">Giảm giá:</span>
                             <span class="text-danger fw-bold" id="discountAmount">-0 đ</span>
                         </div>
@@ -85,15 +90,18 @@
                     <!-- Promo Code Section -->
                     <div class="mb-4">
                         <div class="input-group">
-                            <input type="text" class="form-control" placeholder="Mã giảm giá" id="promoCodeInput" style="border-radius: 12px 0 0 12px;">
-                            <button class="btn btn-primary" type="button" id="applyPromoBtn" style="border-radius: 0 12px 12px 0;">
+                            <input type="text" class="form-control" placeholder="Mã giảm giá" id="promoCodeInput"
+                                   style="border-radius: 12px 0 0 12px;">
+                            <button class="btn btn-primary" type="button" id="applyPromoBtn"
+                                    style="border-radius: 0 12px 12px 0;">
                                 <i class="fas fa-tag"></i>
                             </button>
                         </div>
                         <div id="promoMessage" class="small mt-2"></div>
 
                         <div class="text-center mt-2">
-                            <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#promoModal">
+                            <a href="#" class="text-decoration-none" data-bs-toggle="modal"
+                               data-bs-target="#promoModal">
                                 <small>Xem tất cả mã khuyến mãi</small>
                             </a>
                         </div>
@@ -104,7 +112,8 @@
                         <h6 class="mb-3 fw-bold text-uppercase" style="color: #6c5ce7;">Phương thức thanh toán</h6>
 
                         <div class="form-check mb-3 p-3 border rounded" style="border-radius: 12px !important;">
-                            <input class="form-check-input" type="radio" name="payment_method" id="method1" value="cash_on_delivery" checked>
+                            <input class="form-check-input" type="radio" name="payment_method" id="method1"
+                                   value="cash_on_delivery" checked>
                             <label class="form-check-label d-block" for="method1">
                                 <div class="d-flex align-items-center">
                                     <div class="bg-success p-2 rounded-circle me-3">
@@ -119,7 +128,8 @@
                         </div>
 
                         <div class="form-check mb-3 p-3 border rounded" style="border-radius: 12px !important;">
-                            <input class="form-check-input" type="radio" name="payment_method" id="method2" value="momo">
+                            <input class="form-check-input" type="radio" name="payment_method" id="method2"
+                                   value="momo">
                             <label class="form-check-label d-block" for="method2">
                                 <div class="d-flex align-items-center">
                                     <div class="bg-danger p-2 rounded-circle me-3">
@@ -134,7 +144,8 @@
                         </div>
 
                         <div class="form-check p-3 border rounded" style="border-radius: 12px !important;">
-                            <input class="form-check-input" type="radio" name="payment_method" id="method3" value="vnpay">
+                            <input class="form-check-input" type="radio" name="payment_method" id="method3"
+                                   value="vnpay">
                             <label class="form-check-label d-block" for="method3">
                                 <div class="d-flex align-items-center">
                                     <div class="bg-primary p-2 rounded-circle me-3">
@@ -157,19 +168,19 @@
                 </div>
             </div>
 
-<!--            &lt;!&ndash; Support Card &ndash;&gt;-->
-<!--            <div class="card border-0 shadow-sm" style="border-radius: 16px;">-->
-<!--                <div class="card-body text-center p-4">-->
-<!--                    <div class="bg-light rounded-circle p-3 mb-3 mx-auto" style="width: 60px; height: 60px;">-->
-<!--                        <i class="fas fa-headset text-primary fs-4"></i>-->
-<!--                    </div>-->
-<!--                    <h6 class="fw-bold">Hỗ trợ khách hàng</h6>-->
-<!--                    <p class="small text-muted mb-3">Cần hỗ trợ thêm về đơn hàng?</p>-->
-<!--                    <a href="#" class="btn btn-outline-primary btn-sm" style="border-radius: 20px;">-->
-<!--                        <i class="fas fa-phone-alt me-1"></i>Liên hệ ngay-->
-<!--                    </a>-->
-<!--                </div>-->
-<!--            </div>-->
+            <!--            &lt;!&ndash; Support Card &ndash;&gt;-->
+            <!--            <div class="card border-0 shadow-sm" style="border-radius: 16px;">-->
+            <!--                <div class="card-body text-center p-4">-->
+            <!--                    <div class="bg-light rounded-circle p-3 mb-3 mx-auto" style="width: 60px; height: 60px;">-->
+            <!--                        <i class="fas fa-headset text-primary fs-4"></i>-->
+            <!--                    </div>-->
+            <!--                    <h6 class="fw-bold">Hỗ trợ khách hàng</h6>-->
+            <!--                    <p class="small text-muted mb-3">Cần hỗ trợ thêm về đơn hàng?</p>-->
+            <!--                    <a href="#" class="btn btn-outline-primary btn-sm" style="border-radius: 20px;">-->
+            <!--                        <i class="fas fa-phone-alt me-1"></i>Liên hệ ngay-->
+            <!--                    </a>-->
+            <!--                </div>-->
+            <!--            </div>-->
         </div>
     </div>
 </div>
@@ -190,7 +201,8 @@
                         </span>
                         <input type="text" class="form-control border-0 bg-light" id="promoCodeInputModal"
                                placeholder="Nhập mã giảm giá" style="border-radius: 0;">
-                        <button class="btn btn-primary px-4" type="button" id="applyPromoBtnModal" style="border-radius: 0 12px 12px 0;">
+                        <button class="btn btn-primary px-4" type="button" id="applyPromoBtnModal"
+                                style="border-radius: 0 12px 12px 0;">
                             Áp dụng
                         </button>
                     </div>
@@ -240,7 +252,8 @@
                 },
                 body: JSON.stringify({
                     promo_code: promoCode,
-                    total_price: totalPrice
+                    total_price: totalPrice,
+                    restaurant_id: currentRestaurantId  // Make sure this is passed
                 })
             });
 
@@ -286,6 +299,9 @@
     }
 
     const confirmBtn = document.getElementById('confirmOrderBtn');
+
+    // Add this at the top of the script section
+    const currentRestaurantId = {{ restaurant_id | tojson }};
 
     // Phần xử lý đặt hàng
     confirmBtn.addEventListener('click', async () => {
@@ -333,7 +349,7 @@
     const promoModal = document.getElementById('promoModal');
     promoModal.addEventListener('show.bs.modal', async function() {
         try {
-            const response = await fetch('/customer/promo_codes');
+            const response = await fetch(`/customer/promo_codes?restaurant_id=${currentRestaurantId}`);
             const data = await response.json();
 
             let html = '';
