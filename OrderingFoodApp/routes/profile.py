@@ -24,7 +24,8 @@ def profile():
 
         # 3. Gán vào current_user
         current_user.name  = name
-        current_user.email = email
+        if not current_user.google_id:
+            current_user.email = email
 
         # 4. Xử lý ngày sinh
         if dob_str:

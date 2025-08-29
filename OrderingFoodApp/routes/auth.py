@@ -176,14 +176,54 @@ def google_callback():
     name = user_info.get("name", email.split("@")[0])
 
     user = User.query.filter_by(email=email).first()
-    if not user:
-        user = User(name=name, email=email, role=UserRole.CUSTOMER)
-        db.session.add(user)
+    if user:
+        # User đã tồn tại -> login luôn
+        login_user(user)
+        _merge_guest_cart_to_db(user)
+        flash("Đăng nhập Google thành công!", "success")
+        return redirect(url_for("customer.index"))
+    else:
+        # User chưa tồn tại -> lưu tạm thông tin vào session
+        session["google_user_info"] = {"email": email, "name": name}
+        return redirect(url_for("auth.register_google"))
+
+@auth_bp.route('/register_google', methods=["GET", "POST"])
+def register_google():
+    google_info = session.get("google_user_info")
+    if not google_info:
+        flash("Phiên đăng ký Google không hợp lệ, vui lòng thử lại.", "danger")
+        return redirect(url_for("auth.login"))
+
+    if request.method == "POST":
+        # Lấy dữ liệu từ form
+        phone = request.form.get("phone")
+        address = request.form.get("address")
+        role = request.form.get("role")
+
+        mapping = {
+            "CUSTOMER": UserRole.CUSTOMER,
+            "OWNER": UserRole.OWNER
+        }
+
+        user_role = mapping.get(role.upper())
+        if not user_role:
+            flash("Vai trò không hợp lệ!", "danger")
+            return redirect(url_for("auth.register_google"))
+
+        # Tạo user mới
+        new_user = User(
+            name=google_info["name"],
+            email=google_info["email"],
+            phone=phone,
+            role=user_role
+        )
+        db.session.add(new_user)
         db.session.commit()
 
-    login_user(user)
-    _merge_guest_cart_to_db(user)
+        # Login luôn sau khi đăng ký
+        login_user(new_user)
+        session.pop("google_user_info", None)  # Xóa session tạm
+        flash("Đăng ký tài khoản Google thành công!", "success")
+        return redirect(url_for("customer.index" if user_role == UserRole.CUSTOMER else "owner.index"))
 
-    flash("Đăng nhập Google thành công!", "success")
-    return redirect(url_for("customer.index"))
-
+    return render_template("auth/register_google.html", google_info=google_info)
