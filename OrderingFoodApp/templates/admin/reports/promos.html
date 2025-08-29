@@ -5,7 +5,7 @@
 <div class="container mt-4">
     <h2 class="mb-4">Báo cáo mã khuyến mãi</h2>
 
-    <!-- Dropdown chọn loại báo cáo -->
+    <!-- Bộ lọc -->
     <form method="get" class="row g-3 mb-4">
         <div class="col-md-4">
             <label class="form-label">Chọn loại báo cáo</label>
@@ -39,44 +39,50 @@
         </div>
     </form>
 
-    <!-- Biểu đồ -->
-    <div class="row">
-        <div class="col-md-{{ report_type == 'daily' and 12 or 6 }}">
-            <canvas id="promoChart" height="120"></canvas>
+    <!-- Biểu đồ trong Card -->
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <canvas id="promoChart" style="max-height: 400px;"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Bảng dữ liệu -->
-    <div class="mt-4">
-        <h5>Chi tiết</h5>
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    {% if report_type == 'daily' %}
-                        <th>Ngày</th>
-                        <th>Số lượng mã mới</th>
-                    {% else %}
-                        <th>Loại giảm giá</th>
-                        <th>Số lượng mã</th>
-                    {% endif %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in promo_stats %}
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="mb-3">Chi tiết</h5>
+            <table class="table table-sm table-bordered table-striped align-middle text-center">
+                <thead>
                     <tr>
-                        <td>
-                            {% if report_type == 'daily' %}
-                                {{ row[0].strftime('%Y-%m-%d') }}
-                            {% else %}
-                                {{ row[0].value }}
-                            {% endif %}
-                        </td>
-                        <td>{{ row[1] }}</td>
+                        {% if report_type == 'daily' %}
+                            <th>Ngày</th>
+                            <th>Số lượng mã mới</th>
+                        {% else %}
+                            <th>Loại giảm giá</th>
+                            <th>Số lượng mã</th>
+                        {% endif %}
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <p><strong>Tổng cộng:</strong> {{ total_promos }}</p>
+                </thead>
+                <tbody>
+                    {% for row in promo_stats %}
+                        <tr>
+                            <td>
+                                {% if report_type == 'daily' %}
+                                    {{ row[0].strftime('%Y-%m-%d') }}
+                                {% else %}
+                                    {{ row[0].value }}
+                                {% endif %}
+                            </td>
+                            <td>{{ row[1] }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p class="mt-2"><strong>Tổng cộng:</strong> {{ total_promos }}</p>
+        </div>
     </div>
 </div>
 
@@ -103,10 +109,9 @@
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    position: 'top',
-                },
+                legend: { position: 'top' },
                 title: {
                     display: true,
                     text: '{{ "Thống kê mã khuyến mãi theo ngày" if report_type == "daily" else "Thống kê mã theo loại" }}'
