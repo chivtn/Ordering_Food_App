@@ -246,6 +246,85 @@ body {
 .badge.bg-success-subtle{background:#e7f7ef;}
 .badge.bg-secondary-subtle{background:#eee;}
 
+/* ====== REVIEW CARD: kích thước cố định + ellipsis ====== */
+:root {
+  --rv-card-h: 140px;           /* chiều cao cố định của card (desktop) */
+  --rv-comment-min-h: 3.6em;    /* vùng hiển thị bình luận ~ 3 dòng (line-height 1.2) */
+}
+
+/* Khối review item đồng bộ chiều cao */
+.review .review-item .card {
+  height: var(--rv-card-h);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;            /* chặn tràn khi nội dung dài */
+  border-radius: 16px;
+}
+
+/* Hàng avatar + tên + thời gian luôn co gọn */
+.review .review-item .card > .d-flex {
+  flex: 0 0 auto;
+}
+
+/* Hàng sao */
+.review .review-item .card .text-warning {
+  flex: 0 0 auto;
+  margin-bottom: .25rem;
+}
+
+/* Vùng bình luận luôn chiếm chỗ cố định để các card cao như nhau */
+.review-comment {
+  flex: 1 1 auto;
+  line-height: 1.2;
+  min-height: var(--rv-comment-min-h);
+  margin-top: .25rem;
+}
+
+/* Clamp N dòng với dấu … */
+.clamp-1, .clamp-2, .clamp-3, .clamp-4 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.clamp-1 { -webkit-line-clamp: 1; }
+.clamp-2 { -webkit-line-clamp: 2; }
+.clamp-3 { -webkit-line-clamp: 3; }
+.clamp-4 { -webkit-line-clamp: 4; }
+
+/* Trường hợp không có bình luận: vẫn giữ đúng chiều cao vùng comment */
+.review-comment:empty::after {
+  content: "";
+  display: block;
+  height: var(--rv-comment-min-h);
+}
+
+/* Responsive: tăng nhẹ chiều cao card trên màn nhỏ */
+@media (max-width: 576px) {
+  :root {
+    --rv-card-h: 160px;
+  }
+}
+
+/* 1 dòng + ...  */
+.review-comment.one-line{
+  display:block;              /* để min-height có hiệu lực */
+  white-space: nowrap;        /* chỉ 1 dòng */
+  overflow: hidden;           /* ẩn phần tràn */
+  text-overflow: ellipsis;    /* hiện … */
+  line-height: 1.25;
+  min-height: 1.25em;         /* giữ cao tối thiểu để các card đều nhau */
+}
+
+/* Không có bình luận vẫn giữ đúng chiều cao vùng comment */
+.review-comment.one-line:empty::after{
+  content: "";
+  display:block;
+  height: 1.25em;
+}
+
+/* (tuỳ chọn) nếu bạn đang dùng card cố định chiều cao, giữ nguyên phần height cũ */
 
 
 

@@ -242,118 +242,149 @@
 </style>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      function paintStars(container, value) {
-        container.querySelectorAll('.star').forEach(star => {
-          const v = Number(star.dataset.value);
-          star.classList.toggle('text-warning', v <= value);
-          star.classList.toggle('text-muted',   v >  value);
-        });
-      }
+document.addEventListener('DOMContentLoaded', function () {
+  // ----- UI helpers -----
+  function paintStars(container, value) {
+    container.querySelectorAll('.star').forEach(star => {
+      const v = Number(star.dataset.value);
+      star.classList.toggle('text-warning', v <= value);
+      star.classList.toggle('text-muted',   v >  value);
+    });
+  }
 
-      function updateButtonState(form){
-        const btn   = form.querySelector('.btn-review-submit');
-        const rateI = form.querySelector('input[name="rating"]');
-        const cmtI  = form.querySelector('textarea[name="comment"]');
-        const origR = (form.dataset.originalRating || '').toString();
-        const origC = (form.dataset.originalComment || '').trim();
-        const curR  = (rateI.value || '').toString();
-        const curC  = (cmtI.value || '').trim();
+  function updateButtonState(form){
+    const btn   = form.querySelector('.btn-review-submit');
+    const rateI = form.querySelector('input[name="rating"]');
+    const cmtI  = form.querySelector('textarea[name="comment"]');
+    const origR = (form.dataset.originalRating || '').toString();
+    const origC = (form.dataset.originalComment || '').trim();
+    const curR  = (rateI.value || '').toString();
+    const curC  = (cmtI.value || '').trim();
 
-        const hasOriginal = (origR !== '' || origC !== '');
-        btn.textContent = hasOriginal ? 'Cập nhật' : 'Gửi đánh giá';
+    const hasOriginal = (origR !== '' || origC !== '');
+    btn.textContent = hasOriginal ? 'Cập nhật' : 'Gửi đánh giá';
 
-        let enable;
-        if (hasOriginal) enable = (curR !== origR) || (curC !== origC);
-        else             enable = curR !== '';
-        btn.disabled = !enable;
-      }
+    let enable;
+    if (hasOriginal) enable = (curR !== origR) || (curC !== origC);
+    else             enable = curR !== '';
+    btn.disabled = !enable;
+  }
 
-      document.querySelectorAll('.order-review-form').forEach(form => {
-        const orderId  = form.dataset.orderId;
-        const starsBox = form.querySelector('.rating-stars');
-        const rateI    = document.getElementById('rating-input-' + orderId);
-        const cmtI     = document.getElementById('comment-' + orderId);
+  // Cập nhật nút mở modal ở card đơn hàng sau khi đã có review (không reload)
+  function updateOrderCardButton(orderId) {
+    // Tìm nút trigger theo data-bs-target
+    const triggerBtn = document.querySelector(`[data-bs-target="#reviewModal-${orderId}"]`);
+    if (!triggerBtn) return;
 
-        // init
-        paintStars(starsBox, Number(rateI.value || 0));
+    // Đổi label sang "Xem/Sửa đánh giá"
+    triggerBtn.innerHTML = `<i class="fas fa-star me-1"></i> Xem/Sửa đánh giá`;
+
+    // Nếu card trước đó là trạng thái khác, có thể chỉnh class ở đây (tùy bạn):
+    // triggerBtn.classList.remove('btn-secondary');
+    // triggerBtn.classList.add('btn-outline-primary');
+
+    // Optional: xóa tooltip cũ nếu có
+    triggerBtn.removeAttribute('title');
+  }
+
+  // Toast mini (tùy chọn)
+  function showToast(msg, type='success'){
+    let el = document.getElementById('mini-toast');
+    if(!el){
+      el = document.createElement('div');
+      el.id = 'mini-toast';
+      el.style.position='fixed'; el.style.right='16px'; el.style.bottom='16px';
+      el.style.zIndex='1080';
+      document.body.appendChild(el);
+    }
+    el.innerHTML = `
+      <div class="alert alert-${type} shadow-sm mb-0" role="alert" style="border-radius:12px;">
+        ${msg}
+      </div>
+    `;
+    setTimeout(()=>{ el.innerHTML=''; }, 2200);
+  }
+
+  // ----- Main -----
+  document.querySelectorAll('.order-review-form').forEach(form => {
+    const orderId  = form.dataset.orderId;
+    const starsBox = form.querySelector('.rating-stars');
+    const rateI    = document.getElementById('rating-input-' + orderId);
+    const cmtI     = document.getElementById('comment-' + orderId);
+
+    // init
+    paintStars(starsBox, Number(rateI.value || 0));
+    updateButtonState(form);
+
+    // stars hover/click
+    starsBox.querySelectorAll('.star').forEach(star => {
+      star.addEventListener('mouseenter', () => paintStars(starsBox, Number(star.dataset.value)));
+      star.addEventListener('click', () => {
+        rateI.value = Number(star.dataset.value);
+        paintStars(starsBox, Number(rateI.value));
         updateButtonState(form);
-
-        // stars
-        starsBox.querySelectorAll('.star').forEach(star => {
-          star.addEventListener('mouseenter', () => paintStars(starsBox, Number(star.dataset.value)));
-          star.addEventListener('click', () => {
-            rateI.value = Number(star.dataset.value);
-            paintStars(starsBox, Number(rateI.value));
-            updateButtonState(form);
-          });
-        });
-        starsBox.addEventListener('mouseleave', () => paintStars(starsBox, Number(rateI.value || 0)));
-
-        // comment
-        cmtI.addEventListener('input', () => updateButtonState(form));
-
-        // SUBMIT = AJAX, KHÔNG đóng modal
-        form.addEventListener('submit', async (e) => {
-          e.preventDefault(); // chặn reload/redirect
-
-          const btn = form.querySelector('.btn-review-submit');
-          if (btn.disabled) return;
-
-          const hadOriginal = (form.dataset.originalRating || form.dataset.originalComment);
-
-
-          try {
-            const fd  = new FormData(form);
-            const res = await fetch(form.action, {
-              method: 'POST',
-              headers: {'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'},
-              body: fd
-            });
-            const json = await res.json();
-            if (!res.ok || !json.success) throw new Error(json.message || 'Gửi đánh giá thất bại');
-
-            // Cập nhật "giá trị gốc" => lần sau chỉ bật nút khi có thay đổi mới
-            const rating  = (fd.get('rating') || '').toString();
-            const comment = (fd.get('comment') || '').toString().trim();
-            form.dataset.originalRating  = rating;
-            form.dataset.originalComment = comment;
-
-            // Giữ modal mở. Đổi nhãn thành "Đã lưu" và tiếp tục để nút ở trạng thái xám
-            btn.textContent = 'Cập nhập';
-            btn.disabled    = true;
-
-            // Nếu người dùng gõ thay đổi tiếp -> updateButtonState sẽ tự bật nút
-            cmtI.addEventListener('input', () => updateButtonState(form), { once: true });
-
-
-          } catch (err) {
-            console.error(err);
-            showToast(err.message || 'Có lỗi xảy ra', 'danger');
-            // phục hồi nút về lại label gốc và cho phép bấm lại
-            btn.textContent = hadOriginal ? 'Cập nhật' : 'Gửi đánh giá';
-            updateButtonState(form);
-          }
-        });
       });
+    });
+    starsBox.addEventListener('mouseleave', () => paintStars(starsBox, Number(rateI.value || 0)));
 
-      function showToast(msg, type='success'){
-        let el = document.getElementById('mini-toast');
-        if(!el){
-          el = document.createElement('div');
-          el.id = 'mini-toast';
-          el.style.position='fixed'; el.style.right='16px'; el.style.bottom='16px';
-          el.style.zIndex='1080';
-          document.body.appendChild(el);
-        }
-        el.innerHTML = `
-          <div class="alert alert-${type} shadow-sm mb-0" role="alert" style="border-radius:12px;">
-            ${msg}
-          </div>
-        `;
-        setTimeout(()=>{ el.innerHTML=''; }, 2200);
+    // comment input
+    cmtI.addEventListener('input', () => updateButtonState(form));
+
+    // SUBMIT = AJAX, KHÔNG đóng modal, KHÔNG reload
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const btn = form.querySelector('.btn-review-submit');
+      if (btn.disabled) return;
+
+      const hadOriginal = (form.dataset.originalRating || form.dataset.originalComment);
+
+      try {
+        const fd  = new FormData(form);
+        const res = await fetch(form.action, {
+          method: 'POST',
+          headers: {'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'},
+          body: fd
+        });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.message || 'Gửi đánh giá thất bại');
+
+        // Cập nhật "giá trị gốc" để lần sau chỉ bật nút khi có thay đổi mới
+        const rating  = (fd.get('rating') || '').toString();
+        const comment = (fd.get('comment') || '').toString().trim();
+        form.dataset.originalRating  = rating;
+        form.dataset.originalComment = comment;
+
+        // Đổi nhãn nút trong modal, disable
+        btn.textContent = 'Đã lưu';
+        btn.disabled    = true;
+
+        // >>> Quan trọng: Cập nhật nút trên card ngay lập tức
+        updateOrderCardButton(orderId);
+
+        // Optional: thông báo nhẹ
+        // showToast('Đã lưu đánh giá');
+
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Có lỗi xảy ra', 'danger');
+        const btnLabel = hadOriginal ? 'Cập nhật' : 'Gửi đánh giá';
+        btn.textContent = btnLabel;
+        updateButtonState(form);
       }
     });
+
+    // Khi đóng modal bằng nút X/backdrop: KHÔNG làm gì để tránh giật trang
+    const modalEl = document.getElementById('reviewModal-' + orderId);
+    if (modalEl) {
+      modalEl.addEventListener('hidden.bs.modal', () => {
+        // intentionally empty
+      });
+    }
+  });
+});
 </script>
+
+
 
 {% endblock %}
