@@ -12,9 +12,6 @@ from OrderingFoodApp.routes import customer
 
 # Tìm kiếm nhà hàng theo TÊN NHÀ HÀNG
 def get_restaurants_by_name(search_query, page, per_page=12, sort_by='default', user_lat=None, user_lon=None):
-    # Fallback cho trường hợp template vẫn gửi 'price'
-    if sort_by == 'price':
-        sort_by = 'price_low_to_high'
     # Build base query
     query = db.session.query(
         Restaurant,
@@ -29,25 +26,45 @@ def get_restaurants_by_name(search_query, page, per_page=12, sort_by='default', 
     if sort_by == 'rating':
         query = query.order_by(func.coalesce(func.avg(Review.rating), 0.0).desc())
 
-    elif sort_by == 'price_low_to_high':
-        # Get restaurants with their minimum price and sort by it
-        subquery = db.session.query(
-            MenuItem.restaurant_id,
-            func.min(MenuItem.price).label('min_price')
-        ).filter(MenuItem.is_active == True).group_by(MenuItem.restaurant_id).subquery()
+    elif sort_by == 'price':
+        restaurants_with_rating = query.all()
+        price_ranges = get_restaurant_price_ranges([r[0].id for r in restaurants_with_rating])
 
-        query = query.join(subquery, Restaurant.id == subquery.c.restaurant_id) \
-            .order_by(subquery.c.min_price.asc())
-    elif sort_by == 'price_high_to_low':
-        # Get restaurants with their maximum price and sort by it
-        subquery = db.session.query(
-            MenuItem.restaurant_id,
-            func.max(MenuItem.price).label('max_price')
-        ).filter(MenuItem.is_active == True).group_by(MenuItem.restaurant_id).subquery()
+        prepared = []
+        ROUND_TO = 10000
+        for restaurant, avg_rating in restaurants_with_rating:
+            restaurant.avg_rating = round(avg_rating, 1) if avg_rating else 0.0
+            min_p, max_p = price_ranges.get(restaurant.id, (None, None))
+            restaurant.min_price = min_p
+            restaurant.max_price = max_p
+            restaurant.is_open = customer.is_restaurant_open(restaurant)
 
-        query = query.join(subquery, Restaurant.id == subquery.c.restaurant_id) \
-            .order_by(subquery.c.max_price.desc())
+            # Làm tròn giống template: floor đến bội 10.000
+            if min_p is None:
+                min_key = float('inf')
+            else:
+                min_key = (int(float(min_p)) // ROUND_TO) * ROUND_TO
 
+            if max_p is None:
+                max_key = float('inf')
+            else:
+                max_key = (int(float(max_p)) // ROUND_TO) * ROUND_TO
+
+            prepared.append((restaurant, avg_rating, min_key, max_key))
+
+        # Sắp xếp: min_key tăng, nếu bằng thì max_key tăng
+        prepared.sort(key=lambda x: (x[2], x[3]))
+
+        start, end = (page - 1) * per_page, page * per_page
+        paginated = prepared[start:end]
+        restaurants = [p[0] for p in paginated]
+
+        return {
+            'restaurants': restaurants,
+            'page': page,
+            'per_page': per_page,
+            'total': len(prepared)
+        }
 
     elif sort_by == 'distance' and user_lat is not None and user_lon is not None:
         restaurants_with_rating = query.all()
@@ -137,9 +154,6 @@ def get_menu_items_by_name(search_query, page, per_page=12):
 
 # Tính điểm trung bình cho mỗi nhà hàng
 def get_restaurants_by_category(category_id, page, per_page=12, sort_by='default', user_lat=None, user_lon=None):
-    # Fallback cho trường hợp template vẫn gửi 'price'
-    if sort_by == 'price':
-        sort_by = 'price_low_to_high'
     # Build base query
     query = db.session.query(
         Restaurant,
@@ -154,24 +168,45 @@ def get_restaurants_by_category(category_id, page, per_page=12, sort_by='default
     if sort_by == 'rating':
         query = query.order_by(func.coalesce(func.avg(Review.rating), 0.0).desc())
 
-    elif sort_by == 'price_low_to_high':
-        # Get restaurants with their minimum price and sort by it
-        subquery = db.session.query(
-            MenuItem.restaurant_id,
-            func.min(MenuItem.price).label('min_price')
-        ).filter(MenuItem.is_active == True).group_by(MenuItem.restaurant_id).subquery()
+    elif sort_by == 'price':
+        restaurants_with_rating = query.all()
+        price_ranges = get_restaurant_price_ranges([r[0].id for r in restaurants_with_rating])
 
-        query = query.join(subquery, Restaurant.id == subquery.c.restaurant_id) \
-            .order_by(subquery.c.min_price.asc())
-    elif sort_by == 'price_high_to_low':
-        # Get restaurants with their maximum price and sort by it
-        subquery = db.session.query(
-            MenuItem.restaurant_id,
-            func.max(MenuItem.price).label('max_price')
-        ).filter(MenuItem.is_active == True).group_by(MenuItem.restaurant_id).subquery()
+        prepared = []
+        ROUND_TO = 10000
+        for restaurant, avg_rating in restaurants_with_rating:
+            restaurant.avg_rating = round(avg_rating, 1) if avg_rating else 0.0
+            min_p, max_p = price_ranges.get(restaurant.id, (None, None))
+            restaurant.min_price = min_p
+            restaurant.max_price = max_p
+            restaurant.is_open = customer.is_restaurant_open(restaurant)
 
-        query = query.join(subquery, Restaurant.id == subquery.c.restaurant_id) \
-            .order_by(subquery.c.max_price.desc())
+            # Làm tròn giống template: floor đến bội 10.000
+            if min_p is None:
+                min_key = float('inf')
+            else:
+                min_key = (int(float(min_p)) // ROUND_TO) * ROUND_TO
+
+            if max_p is None:
+                max_key = float('inf')
+            else:
+                max_key = (int(float(max_p)) // ROUND_TO) * ROUND_TO
+
+            prepared.append((restaurant, avg_rating, min_key, max_key))
+
+        # Sắp xếp: min_key tăng, nếu bằng thì max_key tăng
+        prepared.sort(key=lambda x: (x[2], x[3]))
+
+        start, end = (page - 1) * per_page, page * per_page
+        paginated = prepared[start:end]
+        restaurants = [p[0] for p in paginated]
+
+        return {
+            'restaurants': restaurants,
+            'page': page,
+            'per_page': per_page,
+            'total': len(prepared)
+        }
 
     elif sort_by == 'distance' and user_lat is not None and user_lon is not None:
         restaurants_with_rating = query.all()
@@ -249,25 +284,45 @@ def get_all_restaurants(page, per_page=12, sort_by='default', user_lat=None, use
     # Apply sorting
     if sort_by == 'rating':
         query = query.order_by(func.coalesce(func.avg(Review.rating), 0.0).desc())
-    elif sort_by == 'price_low_to_high':
-        # Get restaurants with their minimum price and sort by it
-        subquery = db.session.query(
-            MenuItem.restaurant_id,
-            func.min(MenuItem.price).label('min_price')
-        ).filter(MenuItem.is_active == True).group_by(MenuItem.restaurant_id).subquery()
+    elif sort_by == 'price':
+        restaurants_with_rating = query.all()
+        price_ranges = get_restaurant_price_ranges([r[0].id for r in restaurants_with_rating])
 
-        query = query.join(subquery, Restaurant.id == subquery.c.restaurant_id) \
-            .order_by(subquery.c.min_price.asc())
-    elif sort_by == 'price_high_to_low':
-        # Get restaurants with their maximum price and sort by it
-        subquery = db.session.query(
-            MenuItem.restaurant_id,
-            func.max(MenuItem.price).label('max_price')
-        ).filter(MenuItem.is_active == True).group_by(MenuItem.restaurant_id).subquery()
+        prepared = []
+        ROUND_TO = 10000
+        for restaurant, avg_rating in restaurants_with_rating:
+            restaurant.avg_rating = round(avg_rating, 1) if avg_rating else 0.0
+            min_p, max_p = price_ranges.get(restaurant.id, (None, None))
+            restaurant.min_price = min_p
+            restaurant.max_price = max_p
+            restaurant.is_open = customer.is_restaurant_open(restaurant)
 
-        query = query.join(subquery, Restaurant.id == subquery.c.restaurant_id) \
-            .order_by(subquery.c.max_price.desc())
+            # Làm tròn giống template: floor đến bội 10.000
+            if min_p is None:
+                min_key = float('inf')
+            else:
+                min_key = (int(float(min_p)) // ROUND_TO) * ROUND_TO
 
+            if max_p is None:
+                max_key = float('inf')
+            else:
+                max_key = (int(float(max_p)) // ROUND_TO) * ROUND_TO
+
+            prepared.append((restaurant, avg_rating, min_key, max_key))
+
+        # Sắp xếp: min_key tăng, nếu bằng thì max_key tăng
+        prepared.sort(key=lambda x: (x[2], x[3]))
+
+        start, end = (page - 1) * per_page, page * per_page
+        paginated = prepared[start:end]
+        restaurants = [p[0] for p in paginated]
+
+        return {
+            'restaurants': restaurants,
+            'page': page,
+            'per_page': per_page,
+            'total': len(prepared)
+        }
 
     elif sort_by == 'distance' and user_lat is not None and user_lon is not None:
         # Nếu sắp xếp theo khoảng cách và có tọa độ người dùng

@@ -90,8 +90,8 @@
                    class="btn filter-btn {% if sort_by == 'rating' %}active{% endif %}">
                     <i class="fas fa-star me-2"></i>Đánh giá cao
                 </a>
-                <a href="{{ url_for('customer.restaurants_list', search=search_query, category_id=selected_category_id, sort_by='price_low_to_high') }}"
-                   class="btn filter-btn {% if sort_by == 'price_low_to_high' %}active{% endif %}">
+                <a href="{{ url_for('customer.restaurants_list', search=search_query, category_id=selected_category_id, sort_by='price') }}"
+                   class="btn filter-btn {% if sort_by == 'price' %}active{% endif %}">
                     <i class="fas fa-dollar-sign me-2"></i>Theo giá
                 </a>
                 <a href="{{ url_for('customer.restaurants_list',search=search_query,category_id=selected_category_id,

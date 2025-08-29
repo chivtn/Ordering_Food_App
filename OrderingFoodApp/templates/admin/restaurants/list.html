@@ -123,17 +123,19 @@
                         </td>
                         <td>{{ restaurant.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                         <td>
-                            <a href="{{ url_for('admin.edit_restaurant', restaurant_id=restaurant.id) }}"
-                               class="btn btn-warning btn-sm">
-                                Sửa
-                            </a>
-                            <form method="POST"
-                                  action="{{ url_for('admin.delete_restaurant', restaurant_id=restaurant.id) }}"
-                                  style="display:inline;"
-                                  onsubmit="return confirm('Bạn có chắc chắn muốn xóa nhà hàng này không?');">
-                                <button type="submit" class="btn btn-danger btn-sm">Xóa</button>
-                            </form>
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('admin.edit_restaurant', restaurant_id=restaurant.id) }}"
+                                   class="btn btn-warning btn-sm">
+                                    Sửa
+                                </a>
+                                <form method="POST"
+                                      action="{{ url_for('admin.delete_restaurant', restaurant_id=restaurant.id) }}"
+                                      onsubmit="return confirm('Bạn có chắc chắn muốn xóa nhà hàng này không?');">
+                                    <button type="submit" class="btn btn-danger btn-sm">Xóa</button>
+                                </form>
+                            </div>
                         </td>
+
                     </tr>
                     {% endfor %}
                     </tbody>
