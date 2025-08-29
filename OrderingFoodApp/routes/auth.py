@@ -198,13 +198,24 @@ def register_google():
         # Lấy dữ liệu từ form
         phone = request.form.get("phone")
         address = request.form.get("address")
+        role = request.form.get("role")
+
+        mapping = {
+            "CUSTOMER": UserRole.CUSTOMER,
+            "OWNER": UserRole.OWNER
+        }
+
+        user_role = mapping.get(role.upper())
+        if not user_role:
+            flash("Vai trò không hợp lệ!", "danger")
+            return redirect(url_for("auth.register_google"))
 
         # Tạo user mới
         new_user = User(
             name=google_info["name"],
             email=google_info["email"],
             phone=phone,
-            role=UserRole.CUSTOMER
+            role=user_role
         )
         db.session.add(new_user)
         db.session.commit()
@@ -213,6 +224,6 @@ def register_google():
         login_user(new_user)
         session.pop("google_user_info", None)  # Xóa session tạm
         flash("Đăng ký tài khoản Google thành công!", "success")
-        return redirect(url_for("customer.index"))
+        return redirect(url_for("customer.index" if user_role == UserRole.CUSTOMER else "owner.index"))
 
     return render_template("auth/register_google.html", google_info=google_info)
