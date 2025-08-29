@@ -12,6 +12,9 @@ from OrderingFoodApp.routes import customer
 
 # Tìm kiếm nhà hàng theo TÊN NHÀ HÀNG
 def get_restaurants_by_name(search_query, page, per_page=12, sort_by='default', user_lat=None, user_lon=None):
+    # Fallback cho trường hợp template vẫn gửi 'price'
+    if sort_by == 'price':
+        sort_by = 'price_low_to_high'
     # Build base query
     query = db.session.query(
         Restaurant,
@@ -25,6 +28,27 @@ def get_restaurants_by_name(search_query, page, per_page=12, sort_by='default', 
     # Apply sorting
     if sort_by == 'rating':
         query = query.order_by(func.coalesce(func.avg(Review.rating), 0.0).desc())
+
+    elif sort_by == 'price_low_to_high':
+        # Get restaurants with their minimum price and sort by it
+        subquery = db.session.query(
+            MenuItem.restaurant_id,
+            func.min(MenuItem.price).label('min_price')
+        ).filter(MenuItem.is_active == True).group_by(MenuItem.restaurant_id).subquery()
+
+        query = query.join(subquery, Restaurant.id == subquery.c.restaurant_id) \
+            .order_by(subquery.c.min_price.asc())
+    elif sort_by == 'price_high_to_low':
+        # Get restaurants with their maximum price and sort by it
+        subquery = db.session.query(
+            MenuItem.restaurant_id,
+            func.max(MenuItem.price).label('max_price')
+        ).filter(MenuItem.is_active == True).group_by(MenuItem.restaurant_id).subquery()
+
+        query = query.join(subquery, Restaurant.id == subquery.c.restaurant_id) \
+            .order_by(subquery.c.max_price.desc())
+
+
     elif sort_by == 'distance' and user_lat is not None and user_lon is not None:
         restaurants_with_rating = query.all()
         for restaurant, avg_rating in restaurants_with_rating:
@@ -113,6 +137,9 @@ def get_menu_items_by_name(search_query, page, per_page=12):
 
 # Tính điểm trung bình cho mỗi nhà hàng
 def get_restaurants_by_category(category_id, page, per_page=12, sort_by='default', user_lat=None, user_lon=None):
+    # Fallback cho trường hợp template vẫn gửi 'price'
+    if sort_by == 'price':
+        sort_by = 'price_low_to_high'
     # Build base query
     query = db.session.query(
         Restaurant,
@@ -126,6 +153,26 @@ def get_restaurants_by_category(category_id, page, per_page=12, sort_by='default
     # Apply sorting
     if sort_by == 'rating':
         query = query.order_by(func.coalesce(func.avg(Review.rating), 0.0).desc())
+
+    elif sort_by == 'price_low_to_high':
+        # Get restaurants with their minimum price and sort by it
+        subquery = db.session.query(
+            MenuItem.restaurant_id,
+            func.min(MenuItem.price).label('min_price')
+        ).filter(MenuItem.is_active == True).group_by(MenuItem.restaurant_id).subquery()
+
+        query = query.join(subquery, Restaurant.id == subquery.c.restaurant_id) \
+            .order_by(subquery.c.min_price.asc())
+    elif sort_by == 'price_high_to_low':
+        # Get restaurants with their maximum price and sort by it
+        subquery = db.session.query(
+            MenuItem.restaurant_id,
+            func.max(MenuItem.price).label('max_price')
+        ).filter(MenuItem.is_active == True).group_by(MenuItem.restaurant_id).subquery()
+
+        query = query.join(subquery, Restaurant.id == subquery.c.restaurant_id) \
+            .order_by(subquery.c.max_price.desc())
+
     elif sort_by == 'distance' and user_lat is not None and user_lon is not None:
         restaurants_with_rating = query.all()
         for restaurant, avg_rating in restaurants_with_rating:

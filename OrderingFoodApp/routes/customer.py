@@ -1,5 +1,5 @@
 # customer.py
-import query
+#import query
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import func
