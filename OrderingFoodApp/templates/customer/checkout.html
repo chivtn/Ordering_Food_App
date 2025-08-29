@@ -229,7 +229,7 @@
             return;
         }
 
-        const totalPrice = {{ total_price }} + 15000; // Including delivery fee
+        const totalPrice = {{ total_price }}; // Including delivery fee
 
         try {
             const response = await fetch('/customer/apply_promo', {
