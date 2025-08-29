@@ -278,3 +278,35 @@ def count_users():
     Đếm tổng số người dùng trong hệ thống.
     """
     return db.session.query(User).count()
+
+def create_user_google(email, name, avatar=None, role=UserRole.CUSTOMER):
+    """
+    Tạo user mới khi đăng nhập bằng Google.
+    Args:
+        email (str): Email của người dùng.
+        name (str): Tên hiển thị.
+        avatar (str, optional): Link ảnh đại diện Google.
+        role (UserRole, optional): Vai trò, mặc định CUSTOMER.
+    Returns:
+        User | None
+    """
+    try:
+        # Tránh tạo trùng user
+        existing = get_user_by_email(email)
+        if existing:
+            return existing
+
+        user = User(
+            email=email,
+            name=name,
+            avatar=avatar,
+            role=role,
+            password=None  # Google user không cần password
+        )
+        db.session.add(user)
+        db.session.commit()
+        return user
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        print(f"Error creating Google user: {e}")
+        return None
