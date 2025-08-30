@@ -61,9 +61,18 @@
                             <input type="text" class="form-control" id="longitude" name="longitude" placeholder="Ví dụ: 106.660172" value="{{ request.form.longitude }}">
                         </div>
                         <div class="d-flex justify-content-end">
-                            <a href="{{ url_for('admin.restaurants_management') }}" class="btn btn-secondary me-2">Hủy</a>
-                            <button type="submit" class="btn btn-primary">Thêm Nhà Hàng</button>
+                            <a href="{{ url_for('admin.restaurants_management') }}"
+                               class="btn me-2"
+                               style="background-color:#6c757d; color:#fff;">
+                                <i class="fa-solid fa-xmark me-1"></i> Hủy
+                            </a>
+                            <button type="submit"
+                                    class="btn"
+                                    style="background-color:#28a745; color:#fff;">
+                                <i class="fa-solid fa-plus me-1"></i> Thêm Nhà Hàng
+                            </button>
                         </div>
+
                     </form>
                 </div>
             </div>
