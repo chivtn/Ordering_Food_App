@@ -44,9 +44,18 @@
                             </select>
                         </div>
                         <div class="d-flex justify-content-end">
-                            <a href="{{ url_for('admin.users_management') }}" class="btn btn-secondary me-2">Hủy</a>
-                            <button type="submit" class="btn btn-primary">Thêm Người Dùng</button>
+                            <a href="{{ url_for('admin.users_management') }}"
+                               class="btn me-2"
+                               style="background-color:#6c757d; color:#fff;">
+                                <i class="fa-solid fa-xmark me-1"></i> Hủy
+                            </a>
+                            <button type="submit"
+                                    class="btn"
+                                    style="background-color:#007bff; color:#fff;">
+                                <i class="fa-solid fa-user-plus me-1"></i> Thêm Người Dùng
+                            </button>
                         </div>
+
                     </form>
                 </div>
             </div>

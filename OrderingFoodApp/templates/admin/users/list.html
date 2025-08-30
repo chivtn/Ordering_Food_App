@@ -21,9 +21,12 @@
             <div class="mb-4">
                 <div class="row align-items-center">
                     <div class="col-md-4 mb-2">
-                        <a href="{{ url_for('admin.add_user') }}" class="btn btn-primary w-100">
-                            <i class="bi bi-plus-circle"></i> Thêm Người Dùng Mới
+                        <a href="{{ url_for('admin.add_user') }}"
+                           class="btn"
+                           style="background-color:#28a745; color:#fff;">
+                            <i class="fa-solid fa-plus me-2"></i> Thêm Người Dùng Mới
                         </a>
+
                     </div>
                     <div class="col-md-8">
                         <form class="row g-2" method="GET" action="{{ url_for('admin.users_management') }}">

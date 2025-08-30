@@ -16,8 +16,13 @@
     {% endwith %}
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <a href="{{ url_for('admin.add_promo') }}" class="btn btn-primary">Tạo Mã Khuyến Mãi</a>
+        <a href="{{ url_for('admin.add_promo') }}"
+           class="btn"
+           style="background-color:#28a745; color:#fff;">
+            <i class="fa-solid fa-plus me-2"></i> Tạo Mã Khuyến Mãi
+        </a>
     </div>
+
 
     <div class="table-responsive">
         <table class="table table-bordered table-hover">

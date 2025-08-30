@@ -46,9 +46,18 @@
         </div>
 
         <div class="mb-3 text-end">
-            <a href="{{ url_for('admin.promo_management') }}" class="btn btn-secondary">Hủy</a>
-            <button type="submit" class="btn btn-primary">Tạo mã</button>
+            <a href="{{ url_for('admin.promo_management') }}"
+               class="btn me-2"
+               style="background-color:#6c757d; color:#fff;">
+                <i class="fa-solid fa-xmark me-1"></i> Hủy
+            </a>
+            <button type="submit"
+                    class="btn"
+                    style="background-color:#28a745; color:#fff;">
+                <i class="fa-solid fa-plus me-1"></i> Tạo mã
+            </button>
         </div>
+
     </form>
 </div>
 {% endblock %}
