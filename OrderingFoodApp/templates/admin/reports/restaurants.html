@@ -25,7 +25,7 @@
             <input type="date" class="form-control" name="end" value="{{ end }}">
         </div>
         <div class="col-md-3 align-self-end">
-            <button class="btn btn-primary" type="submit">Lọc</button>
+            <button class="btn btn-primary w-100" type="submit">Lọc</button>
         </div>
         {% endif %}
     </form>
@@ -36,40 +36,58 @@
         <a href="#" class="btn btn-danger btn-sm disabled">Xuất PDF (Chưa hỗ trợ)</a>
     </div>
 
-    <!-- Biểu đồ -->
-    <canvas id="restaurantChart" height="100"></canvas>
+    <!-- Biểu đồ trong Card -->
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <canvas id="restaurantChart" style="max-height: 400px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bảng chi tiết -->
-    <div class="mt-4">
-        <h6>Chi tiết</h6>
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    {% if report_type == 'daily' %}
-                        <th>Ngày</th>
-                        <th>Số lượng nhà hàng mới</th>
-                    {% elif report_type == 'status' %}
-                        <th>Trạng thái</th>
-                        <th>Số lượng nhà hàng</th>
-                    {% endif %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in restaurant_stats %}
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h6 class="mb-3">Chi tiết</h6>
+            <table class="table table-sm table-bordered table-striped align-middle text-center">
+                <thead>
                     <tr>
-                        <td>
-                            {% if report_type == 'daily' %}
-                                {{ row[0].strftime('%Y-%m-%d') }}
-                            {% else %}
-                                {{ row[0] }}
-                            {% endif %}
-                        </td>
-                        <td>{{ row[1] }}</td>
+                        {% if report_type == 'daily' %}
+                            <th>Ngày</th>
+                            <th>Số lượng nhà hàng mới</th>
+                        {% elif report_type == 'status' %}
+                            <th>Trạng thái</th>
+                            <th>Số lượng nhà hàng</th>
+                        {% endif %}
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <p><strong>Tổng cộng: {{ total_restaurants }}</strong></p>
+                </thead>
+                <tbody>
+                    {% for row in restaurant_stats %}
+                        <tr>
+                            <td>
+                                {% if report_type == 'daily' %}
+                                    {{ row[0].strftime('%Y-%m-%d') }}
+                                {% else %}
+                                {% if row[0].name == 'APPROVED' %}
+                                Đã duyệt
+                                {% elif row[0].name == 'PENDING' %}
+                                Chờ duyệt
+                                {% elif row[0].name == 'REJECTED' %}
+                                Từ chối
+                                {% else %}
+                                {{ row[0].name }}
+                                {% endif %}
+                                {% endif %}
+                            </td>
+                            <td>{{ row[1] }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p class="mt-2"><strong>Tổng cộng: {{ total_restaurants }}</strong></p>
+        </div>
     </div>
 </div>
 
@@ -94,6 +112,7 @@
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: { position: 'top' },
                 title: {

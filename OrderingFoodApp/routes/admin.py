@@ -462,15 +462,29 @@ def user_report():
 
     if report_type == 'daily':
         user_stats = reports_dao.get_user_registration_stats(start_date, end_date)
-        labels = [row[0].strftime('%Y-%m-%d') for row in user_stats]
-        values = [row[1] for row in user_stats]
+        labels = []
+        values = []
+        for row in user_stats:
+            date_val = row[0]
+            if isinstance(date_val, str):  # MySQL thường trả string
+                labels.append(date_val)
+            else:  # PostgreSQL/SQLite trả datetime.date
+                labels.append(date_val.strftime('%Y-%m-%d'))
+            values.append(row[1])
         total_users = sum(values)
 
     elif report_type == 'role':
         role_stats = reports_dao.get_user_count_by_role()
-        labels = [role.name.title() for role, _ in role_stats]
-        values = [count for _, count in role_stats]
+        labels = []
+        values = []
+        for role, count in role_stats:
+            if hasattr(role, "name"):  # Enum
+                labels.append(role.name.title())
+            else:  # String
+                labels.append(str(role).title())
+            values.append(count)
         total_users = sum(values)
+        user_stats = role_stats
 
     return render_template(
         'admin/reports/users.html',
@@ -480,7 +494,8 @@ def user_report():
         total_users=total_users,
         start=start,
         end=end,
-        role_stats=role_stats
+        role_stats=role_stats,
+        user_stats = user_stats
     )
 
 

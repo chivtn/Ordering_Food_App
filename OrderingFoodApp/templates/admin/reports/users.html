@@ -34,58 +34,104 @@
         </div>
     </form>
 
-    <!-- Biểu đồ -->
+    <!-- Biểu đồ + Bảng -->
     {% if report_type == 'daily' %}
-        <h5>Tổng số người dùng mới: {{ total_users }}</h5>
-        <canvas id="userChart" height="100"></canvas>
+        <h5 class="mb-3">Tổng số người dùng mới: {{ total_users }}</h5>
 
-        <!-- Bảng chi tiết người dùng mới theo ngày -->
-        <div class="mt-4">
-            <h6>Chi tiết theo ngày</h6>
-            <table class="table table-bordered table-striped">
-                <thead>
-                    <tr>
-                        <th>Ngày</th>
-                        <th>Số người dùng mới</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in user_stats %}
+        <!-- Chart trong card -->
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <canvas id="userChart" style="max-height: 400px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bảng chi tiết -->
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h6 class="mb-3">Chi tiết theo ngày</h6>
+                <table class="table table-sm table-bordered table-striped align-middle text-center">
+                    <thead>
                         <tr>
-                            <td>{{ row[0].strftime('%Y-%m-%d') }}</td>
-                            <td>{{ row[1] }}</td>
+                            <th>Ngày</th>
+                            <th>Số người dùng mới</th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {% for row in user_stats %}
+                            <tr>
+                                <td>{{ row[0].strftime('%Y-%m-%d') }}</td>
+                                <td>{{ row[1] }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
 
     {% elif report_type == 'role' %}
-        <h5>Tổng số người dùng: {{ total_users }}</h5>
-        <div class="d-flex justify-content-center">
-            <canvas id="roleChart" width="900" height="900" style="max-width: 900px;"></canvas>
+        <h5 class="mb-3">Tổng số người dùng: {{ total_users }}</h5>
+
+        <!-- Chart trong card -->
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <div style="max-width: 500px; margin: auto;">
+                            <canvas id="roleChart" style="max-height: 400px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-    <!-- Bảng chi tiết người dùng theo vai trò -->
-    <div class="mt-4">
-        <h6>Chi tiết theo vai trò</h6>
-        <table class="table table-bordered table-striped">
-            <thead>
-            <tr>
-                <th>Vai trò</th>
-                <th>Số lượng người dùng</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for row in user_stats %}
-            <tr>
-                <td>{{ row[0].name.title() }}</td>
-                <td>{{ row[1] }}</td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
+        <!-- Bảng chi tiết -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-body">
+                <h5 class="card-title">Chi tiết báo cáo</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-light">
+                        <tr>
+                            <th>
+                                {% if report_type == 'daily' %}
+                                Ngày
+                                {% else %}
+                                Vai trò
+                                {% endif %}
+                            </th>
+                            <th>Số lượng</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for row in user_stats %}
+                        <tr>
+                            <td>
+                                {% if row[0].name == "ADMIN" %}
+                                Admin
+                                {% elif row[0].name == "OWNER" %}
+                                Chủ nhà hàng
+                                {% elif row[0].name == "CUSTOMER" %}
+                                Khách hàng
+                                {% else %}
+                                {{ row[0] }}
+                                {% endif %}
+                            </td>
+                            <td>{{ row[1] }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="2" class="text-center">Không có dữ liệu</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
     {% endif %}
 </div>
@@ -113,6 +159,7 @@
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: { position: 'top' },
                 title: {
@@ -141,6 +188,7 @@
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 title: {
                     display: true,
