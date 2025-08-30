@@ -31,9 +31,18 @@
     </form>
 
     <!-- Nút xuất -->
+        <!-- Nút xuất -->
     <div class="mb-3">
-        <a href="{{ url_for('admin.export_restaurants_excel', start=start, end=end) }}" class="btn btn-success btn-sm">Xuất Excel</a>
-        <a href="#" class="btn btn-danger btn-sm disabled">Xuất PDF (Chưa hỗ trợ)</a>
+        <a href="{{ url_for('admin.export_restaurant_report', export_format='excel',
+                        start=start, end=end, report_type=report_type) }}"
+           class="btn btn-success">
+            Xuất Excel
+        </a>
+        <a href="{{ url_for('admin.export_restaurant_report', export_format='pdf',
+                        start=start, end=end, report_type=report_type) }}"
+           class="btn btn-danger">
+            Xuất PDF
+        </a>
     </div>
 
     <!-- Biểu đồ trong Card -->
