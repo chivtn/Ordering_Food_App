@@ -1,4 +1,5 @@
 # customer.py
+#import query
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import func
@@ -364,15 +365,18 @@ def checkout():
 
     # Get restaurant info
     restaurant = None
+    restaurant_id = None
     if items:
         first_item = MenuItem.query.get(items[0]['id'])
         if first_item:
             restaurant = Restaurant.query.get(first_item.restaurant_id)
+            restaurant_id = restaurant.id if restaurant else None
 
     return render_template('customer/checkout.html',
                            items=items,
                            total_price=total_price,
-                           restaurant=restaurant )
+                           restaurant=restaurant,
+                           restaurant_id=restaurant_id)  # Add this line
 
 
 
@@ -620,11 +624,25 @@ def cancel_order(order_id):
 @login_required
 def get_promo_codes():
     try:
+        restaurant_id = request.args.get('restaurant_id', type=int)
         current_time = datetime.now()
-        promos = PromoCode.query.filter(
+
+        # Get both system-wide and restaurant-specific promo codes
+        query = PromoCode.query.filter(
             PromoCode.start_date <= current_time,
             PromoCode.end_date >= current_time
-        ).all()
+        )
+
+        if restaurant_id:
+            # Get promo codes for this restaurant OR system-wide promo codes
+            query = query.filter(
+                (PromoCode.restaurant_id == restaurant_id) |
+                (PromoCode.restaurant_id.is_(None)))
+        else:
+            # Only get system-wide promo codes if no restaurant specified
+            query = query.filter(PromoCode.restaurant_id.is_(None))
+
+        promos = query.all()
 
         promos_data = []
         for promo in promos:
@@ -637,13 +655,14 @@ def get_promo_codes():
                 'start_date': promo.start_date.isoformat(),
                 'end_date': promo.end_date.isoformat(),
                 'usage_limit': promo.usage_limit,
-                'image_url': promo.image_url
+                'image_url': promo.image_url,
+                'restaurant_id': promo.restaurant_id
             })
 
         return jsonify({'promos': promos_data})
 
     except Exception as e:
-        app.logger.error(f'Lỗi khi lấy mã giảm giá: {str(e)}')
+        current_app.logger.error(f'Lỗi khi lấy mã giảm giá: {str(e)}')
         return jsonify({'promos': [], 'error': str(e)}), 500
 
 
@@ -653,18 +672,22 @@ def apply_promo():
     data = request.get_json()
     promo_code = data.get('promo_code')
     total_price = float(data.get('total_price', 0))
+    restaurant_id = data.get('restaurant_id')
 
     # Tìm mã giảm giá
     promo = PromoCode.query.filter_by(code=promo_code).first()
     if not promo:
         return jsonify({'success': False, 'message': 'Mã giảm giá không tồn tại'}), 400
 
+    # Kiểm tra xem mã giảm giá có áp dụng cho nhà hàng này không
+    if promo.restaurant_id and promo.restaurant_id != restaurant_id:
+        return jsonify({'success': False, 'message': 'Mã giảm giá không áp dụng cho nhà hàng này'}), 400
+
     current_time = datetime.now()
     if current_time < promo.start_date or current_time > promo.end_date:
         return jsonify({'success': False, 'message': 'Mã giảm giá đã hết hạn'}), 400
 
     # Tính toán số tiền giảm
-    # CHUYỂN ĐỔI Decimal SANG FLOAT TRƯỚC KHI TÍNH TOÁN
     discount_value = float(promo.discount_value)
 
     if promo.discount_type == DiscountType.PERCENT:
@@ -684,6 +707,7 @@ def apply_promo():
         'discount_amount': discount_amount,
         'final_amount': final_amount
     })
+
 # customer.py
 @customer_bp.route('/order/complete/<int:order_id>')
 @login_required
