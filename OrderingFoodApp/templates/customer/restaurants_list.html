@@ -82,15 +82,18 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="filter-container d-flex justify-content-center gap-2">
-                <a href="{{ url_for('customer.restaurants_list', search=search_query, category_id=selected_category_id, sort_by='default') }}"
+                <a href="{{ url_for('customer.restaurants_list', search=search_query, category_id=selected_category_id, sort_by='default'
+                 ,customer_lat=request.args.get('customer_lat'),customer_lng=request.args.get('customer_lng'))}}"
                    class="btn filter-btn {% if sort_by == 'default' %}active{% endif %}">
                     <i class="fas fa-clock me-2"></i>Mới nhất
                 </a>
-                <a href="{{ url_for('customer.restaurants_list', search=search_query, category_id=selected_category_id, sort_by='rating') }}"
+                <a href="{{ url_for('customer.restaurants_list', search=search_query, category_id=selected_category_id, sort_by='rating'
+                 ,customer_lat=request.args.get('customer_lat'),customer_lng=request.args.get('customer_lng'))}}"
                    class="btn filter-btn {% if sort_by == 'rating' %}active{% endif %}">
                     <i class="fas fa-star me-2"></i>Đánh giá cao
                 </a>
-                <a href="{{ url_for('customer.restaurants_list', search=search_query, category_id=selected_category_id, sort_by='price') }}"
+                <a href="{{ url_for('customer.restaurants_list', search=search_query, category_id=selected_category_id,
+                sort_by='price',customer_lat=request.args.get('customer_lat'),customer_lng=request.args.get('customer_lng')) }}"
                    class="btn filter-btn {% if sort_by == 'price' %}active{% endif %}">
                     <i class="fas fa-dollar-sign me-2"></i>Theo giá
                 </a>
@@ -158,10 +161,9 @@
                                 </a>
 
                                 <div class="card-footer bg-transparent border-0 py-2 px-3">
-                                    {% if sort_by == 'distance' and restaurant.distance is not none %}
+                                    {% if restaurant.distance is not none%}
                                     <p class="text-muted small mb-1 text-center">
-                                        <i class="fas fa-route me-1"></i> Cách bạn: {{ "%.2f km" |
-                                        format(restaurant.distance) }}
+                                        <span class="text-muted small">Cách bạn: {{ "%.2f"|format(restaurant.distance) }} km</span>
                                     </p>
                                     {% endif %}
                                 </div>
@@ -260,7 +262,7 @@
                     <!--                        </div>-->
 
                     <!-- ✅ Hiển thị khoảng cách nếu lọc theo distance -->
-                    {% if sort_by == 'distance' and restaurant.distance is not none %}
+                    {% if restaurant.distance is not none %}
                     <div class="text-center mb-2">
                         <i class="fas fa-route me-1 text-muted"></i>
                         <span class="text-muted small">Cách bạn: {{ "%.2f"|format(restaurant.distance) }} km</span>
@@ -705,12 +707,21 @@
                         userLng = position.coords.longitude;
                         console.log(`Vị trí người dùng: ${userLat}, ${userLng}`);
                         distanceBtn.style.display = 'inline-block';
+
+                        // Nếu URL chưa có lat/lng thì thêm vào và reload 1 lần
+                        const url = new URL(window.location.href);
+                        if (!url.searchParams.has('customer_lat') || !url.searchParams.has('customer_lng')) {
+                            url.searchParams.set('customer_lat', userLat);
+                            url.searchParams.set('customer_lng', userLng);
+                            window.location.replace(url.toString()); // replace để tránh loop back
+                        }
                     },
                     function (error) {
                         console.error("Lỗi khi lấy vị trí: ", error);
                         distanceBtn.style.display = 'none';
                     }
                 );
+
             } else {
                 distanceBtn.style.display = 'none';
             }

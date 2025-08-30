@@ -6,7 +6,7 @@ from sqlalchemy import func
 
 from OrderingFoodApp.dao.order_owner import OrderDAO
 from OrderingFoodApp.models import *
-from OrderingFoodApp.dao import customer_service as dao
+from OrderingFoodApp.dao import customer_service as dao, haversine
 from OrderingFoodApp.dao.cart_service import get_cart_items, group_items_by_restaurant
 from datetime import datetime, time, timedelta
 import pytz
@@ -63,15 +63,14 @@ def index():
 
 @customer_bp.route('/restaurants_list')
 def restaurants_list():
+    # Lấy tọa độ vị trí từ request, sử dụng cùng tên biến
+    customer_lat = request.args.get('customer_lat', type=float)
+    customer_lng = request.args.get('customer_lng', type=float)
     search_query = request.args.get('search', '')
     category_id = request.args.get('category_id', type=int)
     sort_by = request.args.get('sort_by', 'default')
     page = request.args.get('page', 1, type=int)
     per_page = 12
-
-    # Lấy tọa độ vị trí từ request, sử dụng cùng tên biến
-    customer_lat = request.args.get('customer_lat', type=float)
-    customer_lng = request.args.get('customer_lng', type=float)
 
     restaurants = []
     menu_items = []
@@ -132,6 +131,18 @@ def restaurants_list():
     ).limit(5).all()
 
     vietnam_time = get_vietnam_time()
+    if search_type == 'restaurants':
+        if customer_lat is not None and customer_lng is not None:
+            for r in restaurants:
+                if getattr(r, 'latitude', None) is not None and getattr(r, 'longitude', None) is not None:
+                    r.distance = haversine(customer_lat, customer_lng, r.latitude, r.longitude)
+                else:
+                    r.distance = None
+        else:
+            # Không có tọa độ => không hiển thị distance
+            for r in restaurants:
+                r.distance = None
+
     for restaurant in restaurants:
         restaurant.is_open = is_restaurant_open(restaurant)
 
