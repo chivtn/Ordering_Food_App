@@ -46,3 +46,5 @@ tzdata==2025.2
 urllib3==2.5.0
 Werkzeug==3.0.1
 WTForms==3.2.1
+xlsxwriter
+reportlab==4.2.2

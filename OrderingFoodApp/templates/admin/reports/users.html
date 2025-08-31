@@ -27,10 +27,23 @@
             <label class="form-label">Đến ngày</label>
             <input type="date" class="form-control" name="end" value="{{ end }}">
         </div>
-        <div class="col-md-4 align-self-end">
-            <button class="btn btn-primary" type="submit">Lọc</button>
-            <a href="{{ url_for('admin.export_user_report', export_format='excel', type=report_type) }}" class="btn btn-success">Xuất Excel</a>
-            <a href="{{ url_for('admin.export_user_report', export_format='pdf', type=report_type) }}" class="btn btn-danger">Xuất PDF</a>
+        <div class="mb-3">
+            <a href="{{ url_for('admin.export_user_report',
+                        export_format='excel',
+                        start=start,
+                        end=end,
+                        report_type=report_type) }}"
+               class="btn btn-success">
+                Xuất Excel
+            </a>
+            <a href="{{ url_for('admin.export_user_report',
+                        export_format='pdf',
+                        start=start,
+                        end=end,
+                        report_type=report_type) }}"
+               class="btn btn-danger">
+                Xuất PDF
+            </a>
         </div>
     </form>
 

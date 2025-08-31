@@ -678,6 +678,9 @@ def owner_promos_add():
                     image_file.save(filepath)
                     image_url = f'/static/uploads/promos/{filename}'
 
+            if not image_url:
+                image_url = '/static/uploads/promos/default_promo.jpg'
+
             promo = PromoCode(
                 code=code,
                 description=description,

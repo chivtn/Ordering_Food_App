@@ -83,15 +83,22 @@ def get_user_count_by_role():
 
 def get_restaurant_registration_stats(start_date=None, end_date=None):
     query = db.session.query(
-        func.date(Restaurant.created_at), func.count(Restaurant.id)
-    ).group_by(func.date(Restaurant.created_at)).order_by(func.date(Restaurant.created_at))
+        func.date(Restaurant.created_at).label("date"),
+        func.count(Restaurant.id).label("count")
+    )
 
+    # filter trước
     if start_date:
         query = query.filter(Restaurant.created_at >= start_date)
     if end_date:
         query = query.filter(Restaurant.created_at <= end_date)
 
+    # sau đó mới group_by và order_by
+    query = query.group_by(func.date(Restaurant.created_at)) \
+                 .order_by(func.date(Restaurant.created_at))
+
     return query.all()
+
 
 def get_restaurant_count_by_status():
     result = (
@@ -137,3 +144,21 @@ def get_monthly_revenue():
     for row in results:
         print(f"Month: {row.month}, Year: {row.year}, Revenue: {row.revenue:.2f}")
     return results
+
+def get_promo_stats_by_day(start_date=None, end_date=None):
+    query = (
+        db.session.query(
+            func.date(Order.created_at).label("date"),
+            func.count(Order.id).label("used_promos")
+        )
+        .filter(Order.promo_code != None)   # chỉ lấy order có sử dụng mã khuyến mãi
+        .group_by(func.date(Order.created_at))
+        .order_by(func.date(Order.created_at))
+    )
+
+    if start_date:
+        query = query.filter(Order.created_at >= start_date)
+    if end_date:
+        query = query.filter(Order.created_at <= end_date)
+
+    return query.all()

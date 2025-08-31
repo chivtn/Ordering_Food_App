@@ -15,6 +15,12 @@ from flask import send_file
 from datetime import datetime
 import csv
 from sqlalchemy import func, extract
+import xlsxwriter
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
+
 
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -389,7 +395,8 @@ def add_promo():
                 discount_value=discount_value,
                 start_date=datetime.strptime(start_date, '%Y-%m-%dT%H:%M'),
                 end_date=datetime.strptime(end_date, '%Y-%m-%dT%H:%M'),
-                usage_limit=int(usage_limit)
+                usage_limit=int(usage_limit),
+                image_url = '/static/uploads/promos/default_promo.jpg'
             )
             db.session.add(new_promo)
             db.session.commit()
@@ -548,64 +555,103 @@ def restaurant_report():
 @admin_bp.route('/reports/users/export/<export_format>')
 @admin_required
 def export_user_report(export_format):
-    user_stats = reports_dao.get_user_registration_stats()
-    role_stats = reports_dao.get_user_count_by_role()  # <- NEW
-
-    filename = f"user_report_{datetime.now().strftime('%Y%m%d')}.{export_format}"
-
-    if export_format == 'excel':
-        import pandas as pd
-        import io
-
-        df_daily = pd.DataFrame(user_stats, columns=["Ngày", "Số lượng người dùng"])
-        df_roles = pd.DataFrame(role_stats, columns=["Vai trò", "Số lượng"])
-
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-            df_daily.to_excel(writer, index=False, sheet_name='Theo ngày')
-            df_roles.to_excel(writer, index=False, sheet_name='Theo vai trò')
-
-        output.seek(0)
-        return send_file(output, download_name=filename, as_attachment=True)
-
-    elif export_format == 'pdf':
-        # Tạm thời xuất CSV làm PDF mẫu
-        output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow(["Ngày", "Số lượng người dùng"])
-        for row in user_stats:
-            writer.writerow([row[0], row[1]])
-
-        writer.writerow([])
-        writer.writerow(["Vai trò", "Số lượng"])
-        for row in role_stats:
-            writer.writerow([row[0], row[1]])
-
-        response = make_response(output.getvalue())
-        response.headers["Content-Disposition"] = f"attachment; filename={filename}"
-        response.headers["Content-type"] = "text/csv"
-        return response
-
-    return "Định dạng không hợp lệ", 400
-
-@admin_bp.route('/reports/restaurants/export/excel')
-@admin_required
-def export_restaurants_excel():
+    report_type = request.args.get('report_type', 'date')  # "date" hoặc "role"
     start = request.args.get('start')
     end = request.args.get('end')
 
     start_date = datetime.strptime(start, '%Y-%m-%d') if start else None
     end_date = datetime.strptime(end, '%Y-%m-%d') if end else None
 
-    data = reports_dao.get_restaurant_registration_stats(start_date, end_date)
-    df = pd.DataFrame(data)
+    # --- Lấy dữ liệu ---
+    if report_type == 'daily':
+        stats = reports_dao.get_user_registration_stats(start_date, end_date)
+        headers = ['Ngày', 'Số người dùng mới']
+        rows = [(row[0].strftime('%Y-%m-%d'), row[1]) for row in stats]
 
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='RestaurantReport')
+    elif report_type == 'role':
+        stats = reports_dao.get_user_count_by_role()
+        headers = ['Vai trò', 'Số lượng']
+        rows = [(row[0], row[1]) for row in stats]
 
-    output.seek(0)
-    return send_file(output, download_name="restaurant_report.xlsx", as_attachment=True)
+    else:
+        return "Loại báo cáo không hợp lệ", 400
+
+    filename = f"user_report_{report_type}_{datetime.now().strftime('%Y%m%d')}"
+
+    # --- Xuất Excel ---
+    if export_format == 'excel':
+        import pandas as pd, io
+        df = pd.DataFrame(rows, columns=headers)
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='UserReport')
+        output.seek(0)
+        return send_file(output, download_name=f"{filename}.xlsx", as_attachment=True)
+
+    # --- Xuất PDF (text đơn giản) ---
+    elif export_format == 'pdf':
+        from flask import make_response
+        pdf_text = f"{headers[0]}\t{headers[1]}\n"
+        for row in rows:
+            pdf_text += f"{row[0]}\t{row[1]}\n"
+
+        response = make_response(pdf_text)
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}.txt'
+        response.headers['Content-Type'] = 'text/plain'
+        return response
+
+    return "Định dạng không hợp lệ", 400
+
+
+@admin_bp.route('/reports/restaurants/export/<export_format>')
+@admin_required
+def export_restaurant_report(export_format):
+    report_type = request.args.get('report_type', 'date')  # "date" hoặc "status"
+    start = request.args.get('start')
+    end = request.args.get('end')
+
+    start_date = datetime.strptime(start, '%Y-%m-%d') if start else None
+    end_date = datetime.strptime(end, '%Y-%m-%d') if end else None
+
+    # --- Lấy dữ liệu ---
+    if report_type == 'daily':
+        stats = reports_dao.get_restaurant_registration_stats(start_date, end_date)
+        headers = ['Ngày', 'Số lượng nhà hàng']
+        rows = [(row[0].strftime('%Y-%m-%d'), row[1]) for row in stats]
+
+    elif report_type == 'status':
+        stats = reports_dao.get_restaurant_count_by_status()
+        headers = ['Trạng thái', 'Số lượng nhà hàng']
+        rows = [(row[0].value, row[1]) for row in stats]
+
+    else:
+        return "Loại báo cáo không hợp lệ", 400
+
+    filename = f"restaurant_report_{report_type}_{datetime.now().strftime('%Y%m%d')}"
+
+    # --- Xuất Excel ---
+    if export_format == 'excel':
+        df = pd.DataFrame(rows, columns=headers)
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, index=False, sheet_name='RestaurantReport')
+        output.seek(0)
+        return send_file(output, download_name=f"{filename}.xlsx", as_attachment=True)
+
+    # --- Xuất PDF (text đơn giản) ---
+    elif export_format == 'pdf':
+        from flask import make_response
+        pdf_text = f"{headers[0]}\t{headers[1]}\n"
+        for row in rows:
+            pdf_text += f"{row[0]}\t{row[1]}\n"
+
+        response = make_response(pdf_text)
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}.txt'
+        response.headers['Content-Type'] = 'text/plain'
+        return response
+
+    return "Định dạng không hợp lệ", 400
+
 
 @admin_bp.route('/reports/promos')
 @admin_required
@@ -656,11 +702,11 @@ def export_promo_report(export_format):
     end_date = datetime.strptime(end, '%Y-%m-%d') if end else None
 
     if report_type == 'daily':
-        promo_stats = reports_dao.get_promo_stats_by_day(start_date, end_date)
+        promo_stats = reports_dao.get_promo_created_stats(start_date, end_date)
         headers = ['Ngày', 'Số lượng mã']
         rows = [(row[0].strftime('%Y-%m-%d'), row[1]) for row in promo_stats]
     elif report_type == 'type':
-        promo_stats = reports_dao.get_promo_count_by_type()
+        promo_stats = reports_dao.get_promo_stats_by_type()
         headers = ['Loại giảm giá', 'Số lượng mã']
         rows = [(row[0].value, row[1]) for row in promo_stats]
     else:
