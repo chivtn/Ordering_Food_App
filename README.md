@@ -104,3 +104,92 @@ This project is part of the **Software Project Management** course, developed by
 ├── /routes
 ├── /services
 └── /utils
+
+---
+
+## ⚙️ **Installation & Setup**
+
+### **1️⃣ Clone the repository**
+```bash
+git clone <repository_link>
+cd <project_folder>
+2️⃣ Create virtual environment
+bash
+Sao chép mã
+python -m venv venv
+venv/Scripts/activate      # Windows
+source venv/bin/activate   # Mac/Linux
+3️⃣ Install dependencies
+bash
+Sao chép mã
+pip install -r requirements.txt
+4️⃣ Configure database
+Create a MySQL database
+
+Update credentials in config.py
+
+5️⃣ Run the application
+bash
+Sao chép mã
+python app.py
+➡️ Access at: http://localhost:5000
+
+📊 Development Process (Agile – Scrum)
+🔥 Sprint 1 – Core Features
+Requirement analysis
+
+System design (Use Case, Activity, Sequence Diagrams)
+
+Database & UI design
+
+Implementation:
+
+✔ Restaurant search & browse
+
+✔ Menu display & add to cart
+
+✔ Shopping cart
+
+✔ Place order (COD)
+
+✔ Basic restaurant owner features
+
+✔ Basic admin features
+
+⚡ Sprint 2 – Advanced Features
+Online payment: Momo, VNPay
+
+Email & SMS notifications
+
+Advanced search filters + Map API
+
+Order rating & reviews
+
+Revenue statistics
+
+UI/UX enhancements
+
+🧪 Testing
+Unit testing with Pytest
+
+API testing using Postman
+
+Integration testing via Jenkins pipeline
+
+📈 Project Evaluation
+Completed according to Gantt Chart timeline
+
+Core functions operate stably
+
+Fully functional CI/CD pipeline
+
+All goals defined in the Project Charter achieved
+
+👥 Team Members
+bash
+Sao chép mã
+Student ID     Name                 Role
+2254052042     Bùi Dạ Lý            Backend, Database
+2254052008     Võ Thị Ngọc Chi      Frontend, Requirements Analysis
+2254050009     Huỳnh Lệ Giang       Testing, UI/UX
+2254052031     Võ Tấn Huy           Backend, API, Admin Features
