@@ -85,7 +85,7 @@ This project is part of the **Software Project Management** course, developed by
 - Deployment on PythonAnywhere
 
 ---
-
+```bash
 📦 project
 ├── app.py
 ├── config.py
@@ -108,7 +108,6 @@ This project is part of the **Software Project Management** course, developed by
 ## ⚙️ **Installation & Setup**
 
 ### **1️⃣ Clone the repository**
-```bash
 git clone <repository_link>
 cd <project_folder>
 
@@ -118,17 +117,14 @@ venv/Scripts/activate      # Windows
 source venv/bin/activate   # Mac/Linux
 
 ### **3️⃣ Install dependencies**
-
 pip install -r requirements.txt
 
 ### **4️⃣ Configure database**
-
 Create a MySQL database
 
 Update credentials in config.py
 
 ### **5️⃣ Run the application**
-
 python app.py
 
 📊 Development Process (Agile – Scrum)
@@ -190,6 +186,7 @@ Fully functional CI/CD pipeline
 All goals defined in the Project Charter achieved
 
 👥 Team Members
+```bash
 Student ID	Name	Role
 2254052042	Bùi Dạ Lý	Backend, Database
 2254052008	Võ Thị Ngọc Chi	Frontend, Requirements Analysis
