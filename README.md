@@ -113,28 +113,36 @@ This project is part of the **Software Project Management** course, developed by
 ```bash
 git clone <repository_link>
 cd <project_folder>
-2️⃣ Create virtual environment
-bash
-Sao chép mã
+```
+
+### **2️⃣ Create virtual environment**
+```bash
 python -m venv venv
 venv/Scripts/activate      # Windows
 source venv/bin/activate   # Mac/Linux
-3️⃣ Install dependencies
-bash
+```
+
+### **3️⃣ Install dependencies**
+```bash
 Sao chép mã
 pip install -r requirements.txt
-4️⃣ Configure database
+```
+
+### **4️⃣ Configure database**
+```bash
 Create a MySQL database
-
 Update credentials in config.py
+```
 
-5️⃣ Run the application
-bash
+### **5️⃣ Run the application**
+```bash
 Sao chép mã
 python app.py
+```
 ➡️ Access at: http://localhost:5000
 
-📊 Development Process (Agile – Scrum)
+### 📊 **Development Process (Agile – Scrum)**
+```bash
 🔥 Sprint 1 – Core Features
 Requirement analysis
 
@@ -155,7 +163,8 @@ Implementation:
 ✔ Basic restaurant owner features
 
 ✔ Basic admin features
-
+```
+```bash
 ⚡ Sprint 2 – Advanced Features
 Online payment: Momo, VNPay
 
@@ -175,7 +184,8 @@ Unit testing with Pytest
 API testing using Postman
 
 Integration testing via Jenkins pipeline
-
+```
+```bash
 📈 Project Evaluation
 Completed according to Gantt Chart timeline
 
@@ -184,12 +194,12 @@ Core functions operate stably
 Fully functional CI/CD pipeline
 
 All goals defined in the Project Charter achieved
-
-👥 Team Members
+```
+### 👥 Team Members
 bash
 Sao chép mã
-Student ID     Name                 Role
-2254052042     Bùi Dạ Lý            Backend, Database
-2254052008     Võ Thị Ngọc Chi      Frontend, Requirements Analysis
-2254050009     Huỳnh Lệ Giang       Testing, UI/UX
-2254052031     Võ Tấn Huy           Backend, API, Admin Features
+Student ID     Name                 
+2254052042     Bùi Dạ Lý            
+2254052008     Võ Thị Ngọc Chi      
+2254050009     Huỳnh Lệ Giang       
+2254052031     Võ Tấn Huy           
