@@ -4,7 +4,7 @@ Web Application – Software Project Management
 
 📌 Introduction
 
-The Online Food Ordering System is developed to provide a fast and convenient platform for customers to order food, support restaurant owners in managing their menu and orders, and offer a powerful control panel for system administrators.
+The Online Food Ordering System is developed to provide a fast and convenient platform for customers to order food, support restaurant owners with menu and order management, and supply an advanced control panel for system administrators.
 
 This project is part of the Software Project Management course, developed by a student team from Ho Chi Minh City Open University.
 
@@ -23,15 +23,19 @@ Location (< 10km)
 
 Advanced filters (price, rating, cuisine type, etc.)
 
-View restaurant details and menu
+View restaurant details & menu
 
 Shopping cart:
 
-Add, update quantity, remove items
+Add items
 
-Real-time total amount calculation
+Update quantity
 
-Place order + payment options:
+Remove items
+
+Real-time total calculation
+
+Place order with payment options:
 
 Cash on Delivery (COD)
 
@@ -41,23 +45,23 @@ VNPay
 
 Apply discount codes
 
-Track order status (Email + SMS notifications)
+Track order status (Email + SMS)
 
 View order history
 
-Rate and review completed orders
+Rate & review completed orders
 
 🍳 Restaurant Owner
 
-Manage restaurant information
+Manage restaurant profile
 
 Manage menu items:
 
-Add / edit / delete dishes
+Add / Edit / Delete dishes
 
-Update item status (available / sold out)
+Update status (available / sold out)
 
-Manage incoming orders:
+Manage orders:
 
 Confirm
 
@@ -71,7 +75,7 @@ Revenue statistics
 
 Manage restaurant-specific discount codes
 
-Reply to customer reviews
+Respond to customer reviews
 
 🛠️ Admin
 
@@ -79,7 +83,7 @@ User management
 
 Restaurant management (review registration / CRUD)
 
-System-wide promotion code management
+Promotion management (system-wide)
 
 Statistics dashboard:
 
@@ -104,7 +108,8 @@ API Testing: Postman, Pytest
 
 MySQL
 
-Schema includes: User, Restaurant, MenuItem, Order, OrderItem, Promotion, Review,...
+Schema includes:
+User, Restaurant, MenuItem, Order, OrderItem, Promotion, Review, ...
 
 🎨 Frontend
 
@@ -120,7 +125,10 @@ CI/CD using Jenkins / GitHub Actions
 
 Deployment on PythonAnywhere
 
+GitHub (version control)
+
 📂 Suggested Folder Structure
+
 📦 project
 ├── app.py
 ├── config.py
@@ -145,7 +153,7 @@ cd <project_folder>
 2️⃣ Create virtual environment
 python -m venv venv
 venv/Scripts/activate      # Windows
-source venv/bin/activate   # Mac / Linux
+source venv/bin/activate   # Mac/Linux
 
 3️⃣ Install dependencies
 pip install -r requirements.txt
@@ -154,17 +162,17 @@ pip install -r requirements.txt
 
 Create a MySQL database
 
-Update DB credentials in config.py
+Update credentials in config.py
 
 5️⃣ Run the application
 python app.py
 
 
-Access the application at http://localhost:5000/
+➡️ Access the system at: http://localhost:5000
 
 📊 Development Process (Agile – Scrum)
 
-The project includes 2 Sprints, each lasting about ~2 weeks.
+Project includes 2 Sprints, each ~2 weeks.
 
 🔥 Sprint 1 – Core Features
 
@@ -172,19 +180,25 @@ Requirement analysis
 
 System design (Use Case, Activity, Sequence Diagrams)
 
-Database schema + UI design
+Database & UI design
 
-Implement main features:
+Implementation:
+
 ✔ Restaurant search & browse
+
 ✔ Menu display & add to cart
+
 ✔ Shopping cart
+
 ✔ Place order (COD)
-✔ Basic restaurant owner features
+
+✔ Basic owner features
+
 ✔ Basic admin features
 
 ⚡ Sprint 2 – Advanced Features
 
-Online payment integration (Momo, VNPay)
+Online payment: Momo, VNPay
 
 Email & SMS notifications
 
@@ -194,25 +208,25 @@ Order rating & reviews
 
 Revenue statistics
 
-UI/UX improvements
+UI/UX enhancements
 
 🧪 Testing
 
 Unit testing with Pytest
 
-API testing with Postman
+API testing using Postman
 
 Integration testing via Jenkins pipeline
 
 📈 Project Evaluation
 
-Completed according to planned schedule (Gantt Chart)
+Completed according to Gantt Chart timeline
 
-All major functions operate stably
+Core functions operate stably
 
-CI/CD pipeline successfully configured
+Fully functional CI/CD pipeline
 
-Fully met goals defined in the Project Charter
+All goals defined in the Project Charter achieved
 
 👥 Team Members
 Student ID	Name	Role
@@ -220,3 +234,7 @@ Student ID	Name	Role
 2254052008	Võ Thị Ngọc Chi	Frontend, Requirements Analysis
 2254050009	Huỳnh Lệ Giang	Testing, UI/UX
 2254052031	Võ Tấn Huy	Backend, API, Admin Features
+
+CI/CD using Jenkins / GitHub Actions
+
+Deployment on PythonAnywhere
