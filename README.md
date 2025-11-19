@@ -1,178 +1,139 @@
-🍽️ ONLINE FOOD ORDERING SYSTEM
+# 🍽️ **ONLINE FOOD ORDERING SYSTEM**
+**Web Application – Software Project Management**
 
-Web Application – Software Project Management
+---
 
-📌 Introduction
+## 📌 **Introduction**
+The **Online Food Ordering System** is developed to provide a fast and convenient platform for customers to order food, support restaurant owners with menu and order management, and supply an advanced control panel for system administrators.
 
-The Online Food Ordering System is developed to provide a fast and convenient platform for customers to order food, support restaurant owners with menu and order management, and supply an advanced control panel for system administrators.
+This project is part of the **Software Project Management** course, developed by a student team from **Ho Chi Minh City Open University**.
 
-This project is part of the Software Project Management course, developed by a student team from Ho Chi Minh City Open University.
+---
 
-🚀 Key Features
-👤 Customer
+## 🚀 **Key Features**
 
-Register / Login (Email & Google API)
+### 👤 **Customer**
+- **Register / Login** (Email & Google API)
+- **Search restaurants by:**
+  - Name
+  - Category
+  - Location (< 10km)
+  - Advanced filters (price, rating, cuisine type, etc.)
+- **View restaurant details & menu**
+- **Shopping cart:**
+  - Add items
+  - Update quantity
+  - Remove items
+  - Real-time total calculation
+- **Place order** with payment options:
+  - Cash on Delivery (COD)
+  - Momo
+  - VNPay
+- **Apply discount codes**
+- **Track order status** (Email + SMS)
+- **View order history**
+- **Rate & review** completed orders
 
-Search restaurants by:
+---
 
-Name
+### 🍳 **Restaurant Owner**
+- **Manage restaurant profile**
+- **Manage menu items:**
+  - Add / Edit / Delete dishes
+  - Update status (available / sold out)
+- **Manage incoming orders:**
+  - Confirm
+  - Preparing
+  - Completed
+  - Cancel
+- **Revenue statistics**
+- **Manage restaurant-specific discount codes**
+- **Respond to customer reviews**
 
-Category
+---
 
-Location (< 10km)
+### 🛠️ **Admin**
+- **User management**
+- **Restaurant management** (review registration / CRUD)
+- **Promotion management** (system-wide)
+- **Statistics dashboard:**
+  - User statistics
+  - Restaurant statistics
+  - Promotion usage statistics
 
-Advanced filters (price, rating, cuisine type, etc.)
+---
 
-View restaurant details & menu
+## 🧱 **Architecture & Technologies**
 
-Shopping cart:
+### 🖥️ **Backend**
+- Python (Flask)
+- SQLAlchemy ORM
+- RESTful API
+- API Testing: Postman, Pytest
 
-Add items
+### 🗄️ **Database**
+- MySQL  
+  Schema includes: **User, Restaurant, MenuItem, Order, OrderItem, Promotion, Review,...**
 
-Update quantity
+### 🎨 **Frontend**
+- HTML / CSS / Bootstrap 5
+- Jinja2 Template Engine
 
-Remove items
+### 📦 **DevOps**
+- GitHub (version control)
+- CI/CD using Jenkins / GitHub Actions
+- Deployment on PythonAnywhere
 
-Real-time total calculation
-
-Place order with payment options:
-
-Cash on Delivery (COD)
-
-Momo
-
-VNPay
-
-Apply discount codes
-
-Track order status (Email + SMS)
-
-View order history
-
-Rate & review completed orders
-
-🍳 Restaurant Owner
-
-Manage restaurant profile
-
-Manage menu items:
-
-Add / Edit / Delete dishes
-
-Update status (available / sold out)
-
-Manage orders:
-
-Confirm
-
-Preparing
-
-Completed
-
-Cancel
-
-Revenue statistics
-
-Manage restaurant-specific discount codes
-
-Respond to customer reviews
-
-🛠️ Admin
-
-User management
-
-Restaurant management (review registration / CRUD)
-
-Promotion management (system-wide)
-
-Statistics dashboard:
-
-User statistics
-
-Restaurant statistics
-
-Promotion usage statistics
-
-🧱 Architecture & Technologies
-🖥️ Backend
-
-Python (Flask)
-
-SQLAlchemy ORM
-
-RESTful API
-
-API Testing: Postman, Pytest
-
-🗄️ Database
-
-MySQL
-
-Schema includes:
-User, Restaurant, MenuItem, Order, OrderItem, Promotion, Review, ...
-
-🎨 Frontend
-
-HTML / CSS / Bootstrap 5
-
-Jinja2 Template Engine
-
-📦 DevOps
-
-GitHub (version control)
-
-CI/CD using Jenkins / GitHub Actions
-
-Deployment on PythonAnywhere
-
-GitHub (version control)
-
-📂 Suggested Folder Structure
+---
 
 📦 project
 ├── app.py
 ├── config.py
 ├── /static
-│   ├── css
-│   ├── js
-│   └── images
+│ ├── css
+│ ├── js
+│ └── images
 ├── /templates
-│   ├── customer
-│   ├── restaurant
-│   └── admin
+│ ├── customer
+│ ├── restaurant
+│ └── admin
 ├── /models
 ├── /routes
 ├── /services
 └── /utils
 
-⚙️ Installation & Setup
-1️⃣ Clone the repository
+
+---
+
+## ⚙️ **Installation & Setup**
+
+### **1️⃣ Clone the repository**
+```bash
 git clone <repository_link>
 cd <project_folder>
 
-2️⃣ Create virtual environment
+### **2️⃣ Create virtual environment**
 python -m venv venv
 venv/Scripts/activate      # Windows
 source venv/bin/activate   # Mac/Linux
 
-3️⃣ Install dependencies
+### **3️⃣ Install dependencies**
+
 pip install -r requirements.txt
 
-4️⃣ Configure database
+### **4️⃣ Configure database**
 
 Create a MySQL database
 
 Update credentials in config.py
 
-5️⃣ Run the application
+### **5️⃣ Run the application**
+
 python app.py
-
-
-➡️ Access the system at: http://localhost:5000
 
 📊 Development Process (Agile – Scrum)
 
-Project includes 2 Sprints, each ~2 weeks.
+Project includes 2 Sprints, each lasting ~2 weeks.
 
 🔥 Sprint 1 – Core Features
 
@@ -192,7 +153,7 @@ Implementation:
 
 ✔ Place order (COD)
 
-✔ Basic owner features
+✔ Basic restaurant owner features
 
 ✔ Basic admin features
 
@@ -234,7 +195,3 @@ Student ID	Name	Role
 2254052008	Võ Thị Ngọc Chi	Frontend, Requirements Analysis
 2254050009	Huỳnh Lệ Giang	Testing, UI/UX
 2254052031	Võ Tấn Huy	Backend, API, Admin Features
-
-CI/CD using Jenkins / GitHub Actions
-
-Deployment on PythonAnywhere
